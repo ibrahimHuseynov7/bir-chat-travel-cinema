@@ -25,10 +25,10 @@ export function parseCinemaHtml(html: string): Session[] {
   const out: Session[] = [];
   const seen = new Set<string>();
   for (const m of html.matchAll(/<tr[^>]*data-date="([\d.]+)"[^>]*>([\s\S]*?)<\/tr>/g)) {
-    const tds = [...m[2].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((x) => x[1]);
+    const tds = [...(m[2] ?? "").matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((x) => x[1] ?? "");
     if (tds.length < 6) continue;
     const fmt = clean(tds[4]);
-    const [dd, mm, yyyy] = m[1].split(".");
+    const [dd, mm, yyyy] = (m[1] ?? "").split(".");
     const s: Session = {
       movie: clean(tds[0]),
       movie_url: tds[0].match(/href="([^"]+)"/)?.[1] ?? null,
@@ -78,10 +78,10 @@ const CATEGORIES = [
 export function parseBirmarketHtml(html: string): Product[] {
   const items = new Map<string, Product>();
   for (const m of html.matchAll(/<a[^>]*href="([^"]*\/product\/(\d+)[^"]*)"[^>]*>([\s\S]*?)<\/a>/g)) {
-    const [, href, id, inner] = m;
+    const href = m[1] ?? "", id = m[2] ?? "", inner = m[3] ?? "";
     const tag = m[0].slice(0, m[0].indexOf(">") + 1);
     const text = clean(inner);
-    const prices = [...text.matchAll(/([\d ]+\.\d{2})\s*₼/g)].map((p) => Number(p[1].replace(/\s/g, "")));
+    const prices = [...text.matchAll(/([\d ]+\.\d{2})\s*₼/g)].map((p) => Number((p[1] ?? "").replace(/\s/g, "")));
     if (!prices.length || items.has(id)) continue;
     const rating = text.match(/(\d\.\d)\s+(\d+)\s+reytinq/);
     const name = clean(tag.match(/aria-label="([^"]+)"/)?.[1] ?? inner.match(/alt="([^"]+)"/)?.[1]);
@@ -148,10 +148,10 @@ export async function searchFlights(q: FlightQuery): Promise<FlightData> {
     let rows = await run();
     if (!rows.length) rows = await run("ru");
     const offers = rows.slice(0, 5).map((f) => ({
-      price_usd: Number(f.price), airline: String(f.airline ?? ""), flight_number: String(f.flight_number ?? ""),
-      departure_at: String(f.departure_at ?? ""), return_at: (f.return_at as string) ?? null,
-      transfers: Number(f.transfers ?? 0), duration_min: Number(f.duration ?? 0),
-      link: f.link ? withMarker(String(f.link)) : search_url,
+      price_usd: Number(f["price"]), airline: String(f["airline"] ?? ""), flight_number: String(f["flight_number"] ?? ""),
+      departure_at: String(f["departure_at"] ?? ""), return_at: (f["return_at"] as string) ?? null,
+      transfers: Number(f["transfers"] ?? 0), duration_min: Number(f["duration"] ?? 0),
+      link: f["link"] ? withMarker(String(f["link"])) : search_url,
     }));
     return { ...q, search_url, offers };
   } catch (e) {

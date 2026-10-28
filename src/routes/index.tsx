@@ -93,7 +93,7 @@ function Index() {
           ) : (
             <div key={m.id} className="flex flex-col gap-2">
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <BirLogo active={m.result?.route} className="h-[16px] w-[10px] text-foreground" /> Routed to <b className="text-foreground">{NAMES[m.result?.route ?? "general"]}</b>
+                <BirLogo active={m.result?.route ?? null} className="h-[16px] w-[10px] text-foreground" /> Routed to <b className="text-foreground">{NAMES[m.result?.route ?? "general"]}</b>
               </div>
               <div className="w-fit max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-wash px-4 py-2 text-sm">{m.text}</div>
               {m.result?.route === "cinema" && <CinemaCard data={m.result.data} onPick={(t) => void sendMessage(t)} />}

@@ -40,7 +40,7 @@ const RX: Record<string, RegExp> = {
   avia: /flight|fly|plane|avia|uçuş|ucus|reys|aviabilet|airport|təyyarə|авиа|рейс|перел[её]т|самол[её]т/i,
   shopping: /buy|shop|price|gift|almaq|qiymət|hədiyyə|mağaza|купить|цена|подар|phone|telefon|laptop|noutbuk|headphone|qulaqlıq/i,
 };
-export const CITIES: Record<string, string> = {
+export const CITIES: { [k: string]: string } = {
   baku: "GYD", "bakı": "GYD", "баку": "GYD", istanbul: "IST", "стамбул": "IST", dubai: "DXB", dubay: "DXB",
   moscow: "MOW", moskva: "MOW", "москва": "MOW", tbilisi: "TBS", london: "LON", paris: "PAR", antalya: "AYT",
   berlin: "BER", ankara: "ESB", nakhchivan: "NAJ", "naxçıvan": "NAJ", ganja: "KVD", "gəncə": "KVD",
@@ -50,13 +50,13 @@ export const CITIES: Record<string, string> = {
 };
 
 export function keywordRoute(text: string, active: Route | null): Route {
-  const score: Record<string, number> = { cinema: 0, avia: 0, shopping: 0 };
-  for (const k in RX) if (RX[k].test(text)) score[k] += 2;
+  const score: { cinema: number; avia: number; shopping: number; [k: string]: number } = { cinema: 0, avia: 0, shopping: 0 };
+  for (const k in RX) if (RX[k]!.test(text)) score[k] = (score[k] ?? 0) + 2;
   const t = text.toLowerCase();
   const cities = Object.keys(CITIES).filter((c) => t.includes(c));
   if (cities.length && /\bto\b|from|dan|dən|-|→/.test(t)) score.avia += 2;
   if (/ticket|bilet|билет/.test(t)) { if (cities.length) score.avia++; else score.cinema++; }
-  const [best, val] = Object.entries(score).sort((a, b) => b[1] - a[1])[0];
+  const [best, val] = Object.entries(score).sort((a, b) => b[1] - a[1])[0] ?? ["general", 0];
   if (val === 0) return active || "general";
   if (active && active !== "general" && score[active] === val) return active;
   return best as Route;
@@ -65,7 +65,7 @@ export function keywordRoute(text: string, active: Route | null): Route {
 /** Turn a city name or IATA code into an IATA code ("" if unknown). */
 export function toIata(v: string): string {
   const t = v.trim().toLowerCase();
-  if (CITIES[t]) return CITIES[t];
+  const c = CITIES[t]; if (c) return c;
   return /^[a-z]{3}$/.test(t) ? t.toUpperCase() : "";
 }
 
