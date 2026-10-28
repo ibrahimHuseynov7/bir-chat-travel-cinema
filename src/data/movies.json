@@ -1,0 +1,1792 @@
+[
+  {
+    "id": "spiderman-bnd",
+    "tmdb_id": null,
+    "title": "Spider-Man: Brand New Day",
+    "original_language": "en",
+    "release_date": "2026-07-31",
+    "year": 2026,
+    "genres": [
+      {
+        "id": 28,
+        "name": "Action"
+      },
+      {
+        "id": 12,
+        "name": "Adventure"
+      },
+      {
+        "id": 878,
+        "name": "Science Fiction"
+      }
+    ],
+    "runtime_min": 135,
+    "vote_average": 8.1,
+    "age_rating": "PG-13",
+    "overview": "A Peter Parker the world has forgotten tries to rebuild a life in New York while a new threat rises.",
+    "mood_tags": [
+      "exciting",
+      "fun",
+      "friends"
+    ],
+    "director": null,
+    "cast": [
+      "Tom Holland",
+      "Zendaya"
+    ],
+    "status": "in_theaters",
+    "watch_providers_mock": [],
+    "box_office_worldwide_usd": 2506881993,
+    "popularity": 99,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Spider-Man: Brand New Day 2026 official trailer"
+  },
+  {
+    "id": "the-odyssey",
+    "tmdb_id": null,
+    "title": "The Odyssey",
+    "original_language": "en",
+    "release_date": "2026-07-17",
+    "year": 2026,
+    "genres": [
+      {
+        "id": 12,
+        "name": "Adventure"
+      },
+      {
+        "id": 14,
+        "name": "Fantasy"
+      },
+      {
+        "id": 18,
+        "name": "Drama"
+      }
+    ],
+    "runtime_min": 165,
+    "vote_average": 8.4,
+    "age_rating": "PG-13",
+    "overview": "Christopher Nolan's epic of Odysseus' long, perilous voyage home after the Trojan War.",
+    "mood_tags": [
+      "epic",
+      "thoughtful",
+      "visually_stunning"
+    ],
+    "director": "Christopher Nolan",
+    "cast": [
+      "Matt Damon"
+    ],
+    "status": "in_theaters",
+    "watch_providers_mock": [],
+    "box_office_worldwide_usd": 1770810884,
+    "popularity": 97,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "The Odyssey 2026 official trailer"
+  },
+  {
+    "id": "toy-story-5",
+    "tmdb_id": null,
+    "title": "Toy Story 5",
+    "original_language": "en",
+    "release_date": "2026-06-19",
+    "year": 2026,
+    "genres": [
+      {
+        "id": 16,
+        "name": "Animation"
+      },
+      {
+        "id": 10751,
+        "name": "Family"
+      },
+      {
+        "id": 35,
+        "name": "Comedy"
+      },
+      {
+        "id": 12,
+        "name": "Adventure"
+      }
+    ],
+    "runtime_min": 100,
+    "vote_average": 7.8,
+    "age_rating": "G",
+    "overview": "Woody, Buzz and the gang face a new rival for a kid's attention: a shiny tablet.",
+    "mood_tags": [
+      "family",
+      "feel_good",
+      "funny"
+    ],
+    "director": null,
+    "cast": [],
+    "status": "streaming",
+    "watch_providers_mock": [
+      "Disney+"
+    ],
+    "box_office_worldwide_usd": 1148032149,
+    "popularity": 92,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Toy Story 5 2026 official trailer"
+  },
+  {
+    "id": "michael",
+    "tmdb_id": null,
+    "title": "Michael",
+    "original_language": "en",
+    "release_date": "2026-04-24",
+    "year": 2026,
+    "genres": [
+      {
+        "id": 10402,
+        "name": "Music"
+      },
+      {
+        "id": 18,
+        "name": "Drama"
+      },
+      {
+        "id": 36,
+        "name": "History"
+      }
+    ],
+    "runtime_min": 130,
+    "vote_average": 7.4,
+    "age_rating": "PG-13",
+    "overview": "Biopic tracing Michael Jackson's rise from the Jackson 5 to global superstardom.",
+    "mood_tags": [
+      "music",
+      "inspiring",
+      "nostalgic"
+    ],
+    "director": "Antoine Fuqua",
+    "cast": [
+      "Jaafar Jackson"
+    ],
+    "status": "streaming",
+    "watch_providers_mock": [
+      "Prime Video"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 90,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Michael 2026 official trailer"
+  },
+  {
+    "id": "mario-galaxy",
+    "tmdb_id": null,
+    "title": "The Super Mario Galaxy Movie",
+    "original_language": "en",
+    "release_date": "2026-04-03",
+    "year": 2026,
+    "genres": [
+      {
+        "id": 16,
+        "name": "Animation"
+      },
+      {
+        "id": 10751,
+        "name": "Family"
+      },
+      {
+        "id": 12,
+        "name": "Adventure"
+      },
+      {
+        "id": 35,
+        "name": "Comedy"
+      }
+    ],
+    "runtime_min": 98,
+    "vote_average": 7.1,
+    "age_rating": "PG",
+    "overview": "Mario and friends blast off on a cosmic adventure across planets and galaxies.",
+    "mood_tags": [
+      "family",
+      "fun",
+      "colorful"
+    ],
+    "director": null,
+    "cast": [],
+    "status": "streaming",
+    "watch_providers_mock": [
+      "Netflix"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 88,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "The Super Mario Galaxy Movie 2026 official trailer"
+  },
+  {
+    "id": "project-hail-mary",
+    "tmdb_id": null,
+    "title": "Project Hail Mary",
+    "original_language": "en",
+    "release_date": "2026-03-20",
+    "year": 2026,
+    "genres": [
+      {
+        "id": 878,
+        "name": "Science Fiction"
+      },
+      {
+        "id": 12,
+        "name": "Adventure"
+      },
+      {
+        "id": 18,
+        "name": "Drama"
+      }
+    ],
+    "runtime_min": 156,
+    "vote_average": 8.3,
+    "age_rating": "PG-13",
+    "overview": "An astronaut wakes with no memory aboard a ship on a mission to save the Sun - and finds an unexpected ally.",
+    "mood_tags": [
+      "thoughtful",
+      "feel_good",
+      "space"
+    ],
+    "director": "Phil Lord & Chris Miller",
+    "cast": [
+      "Ryan Gosling",
+      "Sandra Hüller"
+    ],
+    "status": "streaming",
+    "watch_providers_mock": [
+      "Prime Video"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 91,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Project Hail Mary 2026 official trailer"
+  },
+  {
+    "id": "devil-wears-prada-2",
+    "tmdb_id": null,
+    "title": "The Devil Wears Prada 2",
+    "original_language": "en",
+    "release_date": "2026-05-01",
+    "year": 2026,
+    "genres": [
+      {
+        "id": 35,
+        "name": "Comedy"
+      },
+      {
+        "id": 18,
+        "name": "Drama"
+      }
+    ],
+    "runtime_min": 115,
+    "vote_average": 6.9,
+    "age_rating": "PG-13",
+    "overview": "Miranda Priestly and Andy Sachs cross paths again as the magazine world fights to survive.",
+    "mood_tags": [
+      "funny",
+      "stylish",
+      "date_night"
+    ],
+    "director": "David Frankel",
+    "cast": [
+      "Meryl Streep",
+      "Anne Hathaway",
+      "Emily Blunt"
+    ],
+    "status": "streaming",
+    "watch_providers_mock": [
+      "Disney+"
+    ],
+    "box_office_worldwide_usd": 664100000,
+    "popularity": 84,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "The Devil Wears Prada 2 2026 official trailer"
+  },
+  {
+    "id": "minions-monsters",
+    "tmdb_id": null,
+    "title": "Minions & Monsters",
+    "original_language": "en",
+    "release_date": "2026-07-01",
+    "year": 2026,
+    "genres": [
+      {
+        "id": 16,
+        "name": "Animation"
+      },
+      {
+        "id": 10751,
+        "name": "Family"
+      },
+      {
+        "id": 35,
+        "name": "Comedy"
+      }
+    ],
+    "runtime_min": 92,
+    "vote_average": 6.8,
+    "age_rating": "PG",
+    "overview": "The Minions stumble into the world of classic monster movies.",
+    "mood_tags": [
+      "family",
+      "funny",
+      "silly"
+    ],
+    "director": null,
+    "cast": [],
+    "status": "in_theaters",
+    "watch_providers_mock": [],
+    "box_office_worldwide_usd": null,
+    "popularity": 80,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Minions & Monsters 2026 official trailer"
+  },
+  {
+    "id": "hoppers",
+    "tmdb_id": null,
+    "title": "Hoppers",
+    "original_language": "en",
+    "release_date": "2026-03-06",
+    "year": 2026,
+    "genres": [
+      {
+        "id": 16,
+        "name": "Animation"
+      },
+      {
+        "id": 10751,
+        "name": "Family"
+      },
+      {
+        "id": 878,
+        "name": "Science Fiction"
+      },
+      {
+        "id": 35,
+        "name": "Comedy"
+      }
+    ],
+    "runtime_min": 104,
+    "vote_average": 7.6,
+    "age_rating": "PG",
+    "overview": "A girl transfers her mind into a robotic beaver to get close to the animals she wants to protect.",
+    "mood_tags": [
+      "family",
+      "feel_good",
+      "funny"
+    ],
+    "director": null,
+    "cast": [],
+    "status": "streaming",
+    "watch_providers_mock": [
+      "Disney+"
+    ],
+    "box_office_worldwide_usd": 388400000,
+    "popularity": 78,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Hoppers 2026 official trailer"
+  },
+  {
+    "id": "wuthering-heights-2026",
+    "tmdb_id": null,
+    "title": "Wuthering Heights",
+    "original_language": "en",
+    "release_date": "2026-02-13",
+    "year": 2026,
+    "genres": [
+      {
+        "id": 10749,
+        "name": "Romance"
+      },
+      {
+        "id": 18,
+        "name": "Drama"
+      }
+    ],
+    "runtime_min": 135,
+    "vote_average": 6.6,
+    "age_rating": "R",
+    "overview": "A lush, intense new take on Emily Brontë's tale of obsessive love on the Yorkshire moors.",
+    "mood_tags": [
+      "romantic",
+      "dark",
+      "date_night"
+    ],
+    "director": "Emerald Fennell",
+    "cast": [
+      "Margot Robbie",
+      "Jacob Elordi"
+    ],
+    "status": "streaming",
+    "watch_providers_mock": [
+      "HBO Max"
+    ],
+    "box_office_worldwide_usd": 241600000,
+    "popularity": 76,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Wuthering Heights 2026 official trailer"
+  },
+  {
+    "id": "obsession-2026",
+    "tmdb_id": null,
+    "title": "Obsession",
+    "original_language": "en",
+    "release_date": null,
+    "year": 2026,
+    "genres": [
+      {
+        "id": 27,
+        "name": "Horror"
+      },
+      {
+        "id": 53,
+        "name": "Thriller"
+      }
+    ],
+    "runtime_min": 95,
+    "vote_average": 7.2,
+    "age_rating": "R",
+    "overview": "A micro-budget horror hit that became one of the year's biggest surprises.",
+    "mood_tags": [
+      "scary",
+      "tense"
+    ],
+    "director": null,
+    "cast": [],
+    "status": "streaming",
+    "watch_providers_mock": [
+      "Netflix"
+    ],
+    "box_office_worldwide_usd": 519300000,
+    "popularity": 82,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Obsession 2026 official trailer"
+  },
+  {
+    "id": "resident-evil-2026",
+    "tmdb_id": null,
+    "title": "Resident Evil",
+    "original_language": "en",
+    "release_date": "2026-09-18",
+    "year": 2026,
+    "genres": [
+      {
+        "id": 27,
+        "name": "Horror"
+      },
+      {
+        "id": 28,
+        "name": "Action"
+      }
+    ],
+    "runtime_min": 110,
+    "vote_average": 7.5,
+    "age_rating": "R",
+    "overview": "A fresh, standalone take on the survival-horror game franchise.",
+    "mood_tags": [
+      "scary",
+      "exciting",
+      "friends"
+    ],
+    "director": "Zach Cregger",
+    "cast": [],
+    "status": "in_theaters",
+    "watch_providers_mock": [],
+    "box_office_worldwide_usd": null,
+    "popularity": 86,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Resident Evil 2026 official trailer"
+  },
+  {
+    "id": "verity",
+    "tmdb_id": null,
+    "title": "Verity",
+    "original_language": "en",
+    "release_date": "2026-10-02",
+    "year": 2026,
+    "genres": [
+      {
+        "id": 53,
+        "name": "Thriller"
+      },
+      {
+        "id": 9648,
+        "name": "Mystery"
+      },
+      {
+        "id": 10749,
+        "name": "Romance"
+      }
+    ],
+    "runtime_min": 112,
+    "vote_average": 6.8,
+    "age_rating": "R",
+    "overview": "A struggling writer hired to finish a bestselling author's series uncovers a chilling manuscript.",
+    "mood_tags": [
+      "tense",
+      "twisty",
+      "date_night"
+    ],
+    "director": null,
+    "cast": [
+      "Anne Hathaway"
+    ],
+    "status": "in_theaters",
+    "watch_providers_mock": [],
+    "box_office_worldwide_usd": null,
+    "popularity": 85,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Verity 2026 official trailer"
+  },
+  {
+    "id": "practical-magic-2",
+    "tmdb_id": null,
+    "title": "Practical Magic 2",
+    "original_language": "en",
+    "release_date": "2026-09-18",
+    "year": 2026,
+    "genres": [
+      {
+        "id": 14,
+        "name": "Fantasy"
+      },
+      {
+        "id": 35,
+        "name": "Comedy"
+      },
+      {
+        "id": 10749,
+        "name": "Romance"
+      }
+    ],
+    "runtime_min": 110,
+    "vote_average": 7.0,
+    "age_rating": "PG-13",
+    "overview": "The Owens sisters return to face a new generation of family magic and curses.",
+    "mood_tags": [
+      "cozy",
+      "feel_good",
+      "nostalgic"
+    ],
+    "director": null,
+    "cast": [
+      "Sandra Bullock",
+      "Nicole Kidman"
+    ],
+    "status": "in_theaters",
+    "watch_providers_mock": [],
+    "box_office_worldwide_usd": null,
+    "popularity": 79,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Practical Magic 2 2026 official trailer"
+  },
+  {
+    "id": "street-fighter",
+    "tmdb_id": null,
+    "title": "Street Fighter",
+    "original_language": "en",
+    "release_date": "2026-10-16",
+    "year": 2026,
+    "genres": [
+      {
+        "id": 28,
+        "name": "Action"
+      },
+      {
+        "id": 12,
+        "name": "Adventure"
+      }
+    ],
+    "runtime_min": 112,
+    "vote_average": 6.9,
+    "age_rating": "PG-13",
+    "overview": "The classic fighting-game roster collides in a world tournament.",
+    "mood_tags": [
+      "exciting",
+      "fun",
+      "friends"
+    ],
+    "director": "Kitao Sakurai",
+    "cast": [],
+    "status": "in_theaters",
+    "watch_providers_mock": [],
+    "box_office_worldwide_usd": null,
+    "popularity": 83,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Street Fighter 2026 official trailer"
+  },
+  {
+    "id": "avatar-fire-ash",
+    "tmdb_id": null,
+    "title": "Avatar: Fire and Ash",
+    "original_language": "en",
+    "release_date": "2025-12-19",
+    "year": 2025,
+    "genres": [
+      {
+        "id": 878,
+        "name": "Science Fiction"
+      },
+      {
+        "id": 12,
+        "name": "Adventure"
+      },
+      {
+        "id": 28,
+        "name": "Action"
+      }
+    ],
+    "runtime_min": 195,
+    "vote_average": 7.6,
+    "age_rating": "PG-13",
+    "overview": "Jake and Neytiri's family encounter the Ash People, a fierce new Na'vi clan on Pandora.",
+    "mood_tags": [
+      "epic",
+      "visually_stunning",
+      "family"
+    ],
+    "director": "James Cameron",
+    "cast": [
+      "Sam Worthington",
+      "Zoe Saldaña"
+    ],
+    "status": "streaming",
+    "watch_providers_mock": [
+      "Disney+"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 81,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Avatar: Fire and Ash 2025 official trailer"
+  },
+  {
+    "id": "sinners",
+    "tmdb_id": null,
+    "title": "Sinners",
+    "original_language": "en",
+    "release_date": "2025-04-18",
+    "year": 2025,
+    "genres": [
+      {
+        "id": 27,
+        "name": "Horror"
+      },
+      {
+        "id": 18,
+        "name": "Drama"
+      },
+      {
+        "id": 10402,
+        "name": "Music"
+      }
+    ],
+    "runtime_min": 137,
+    "vote_average": 7.8,
+    "age_rating": "R",
+    "overview": "Twin brothers return to 1930s Mississippi to open a juke joint and meet an ancient evil.",
+    "mood_tags": [
+      "dark",
+      "music",
+      "thoughtful"
+    ],
+    "director": "Ryan Coogler",
+    "cast": [
+      "Michael B. Jordan"
+    ],
+    "status": "streaming",
+    "watch_providers_mock": [
+      "HBO Max"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 75,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Sinners 2025 official trailer"
+  },
+  {
+    "id": "kpop-demon-hunters",
+    "tmdb_id": null,
+    "title": "KPop Demon Hunters",
+    "original_language": "en",
+    "release_date": "2025-06-20",
+    "year": 2025,
+    "genres": [
+      {
+        "id": 16,
+        "name": "Animation"
+      },
+      {
+        "id": 14,
+        "name": "Fantasy"
+      },
+      {
+        "id": 10402,
+        "name": "Music"
+      },
+      {
+        "id": 28,
+        "name": "Action"
+      }
+    ],
+    "runtime_min": 96,
+    "vote_average": 7.9,
+    "age_rating": "PG",
+    "overview": "A K-pop girl group secretly protects fans from demons - including a rival boy band.",
+    "mood_tags": [
+      "fun",
+      "music",
+      "family",
+      "colorful"
+    ],
+    "director": null,
+    "cast": [],
+    "status": "streaming",
+    "watch_providers_mock": [
+      "Netflix"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 88,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "KPop Demon Hunters 2025 official trailer"
+  },
+  {
+    "id": "weapons",
+    "tmdb_id": null,
+    "title": "Weapons",
+    "original_language": "en",
+    "release_date": "2025-08-08",
+    "year": 2025,
+    "genres": [
+      {
+        "id": 27,
+        "name": "Horror"
+      },
+      {
+        "id": 9648,
+        "name": "Mystery"
+      }
+    ],
+    "runtime_min": 128,
+    "vote_average": 7.5,
+    "age_rating": "R",
+    "overview": "When a class of children vanishes overnight, a town searches for what happened.",
+    "mood_tags": [
+      "scary",
+      "twisty",
+      "tense"
+    ],
+    "director": "Zach Cregger",
+    "cast": [
+      "Julia Garner",
+      "Josh Brolin"
+    ],
+    "status": "streaming",
+    "watch_providers_mock": [
+      "HBO Max"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 70,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Weapons 2025 official trailer"
+  },
+  {
+    "id": "f1",
+    "tmdb_id": null,
+    "title": "F1",
+    "original_language": "en",
+    "release_date": "2025-06-27",
+    "year": 2025,
+    "genres": [
+      {
+        "id": 28,
+        "name": "Action"
+      },
+      {
+        "id": 18,
+        "name": "Drama"
+      }
+    ],
+    "runtime_min": 155,
+    "vote_average": 7.6,
+    "age_rating": "PG-13",
+    "overview": "A veteran driver returns to Formula 1 to mentor a rookie on a struggling team.",
+    "mood_tags": [
+      "exciting",
+      "inspiring",
+      "friends"
+    ],
+    "director": "Joseph Kosinski",
+    "cast": [
+      "Brad Pitt"
+    ],
+    "status": "streaming",
+    "watch_providers_mock": [
+      "Apple TV+"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 72,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "F1 2025 official trailer"
+  },
+  {
+    "id": "dune-part-two",
+    "tmdb_id": null,
+    "title": "Dune: Part Two",
+    "original_language": "en",
+    "release_date": "2024-03-01",
+    "year": 2024,
+    "genres": [
+      {
+        "id": 878,
+        "name": "Science Fiction"
+      },
+      {
+        "id": 12,
+        "name": "Adventure"
+      }
+    ],
+    "runtime_min": 166,
+    "vote_average": 8.2,
+    "age_rating": "PG-13",
+    "overview": "Paul Atreides unites with the Fremen while seeking revenge against those who destroyed his family.",
+    "mood_tags": [
+      "epic",
+      "visually_stunning",
+      "thoughtful"
+    ],
+    "director": "Denis Villeneuve",
+    "cast": [
+      "Timothée Chalamet",
+      "Zendaya"
+    ],
+    "status": "streaming",
+    "watch_providers_mock": [
+      "HBO Max",
+      "Prime Video"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 74,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Dune: Part Two 2024 official trailer"
+  },
+  {
+    "id": "inside-out-2",
+    "tmdb_id": null,
+    "title": "Inside Out 2",
+    "original_language": "en",
+    "release_date": "2024-06-14",
+    "year": 2024,
+    "genres": [
+      {
+        "id": 16,
+        "name": "Animation"
+      },
+      {
+        "id": 10751,
+        "name": "Family"
+      },
+      {
+        "id": 35,
+        "name": "Comedy"
+      }
+    ],
+    "runtime_min": 96,
+    "vote_average": 7.6,
+    "age_rating": "PG",
+    "overview": "Riley becomes a teenager and new emotions, led by Anxiety, move into headquarters.",
+    "mood_tags": [
+      "family",
+      "feel_good",
+      "thoughtful"
+    ],
+    "director": null,
+    "cast": [],
+    "status": "streaming",
+    "watch_providers_mock": [
+      "Disney+"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 70,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Inside Out 2 2024 official trailer"
+  },
+  {
+    "id": "interstellar",
+    "tmdb_id": null,
+    "title": "Interstellar",
+    "original_language": "en",
+    "release_date": "2014-11-07",
+    "year": 2014,
+    "genres": [
+      {
+        "id": 878,
+        "name": "Science Fiction"
+      },
+      {
+        "id": 12,
+        "name": "Adventure"
+      },
+      {
+        "id": 18,
+        "name": "Drama"
+      }
+    ],
+    "runtime_min": 169,
+    "vote_average": 8.5,
+    "age_rating": "PG-13",
+    "overview": "Explorers travel through a wormhole to find humanity a new home.",
+    "mood_tags": [
+      "epic",
+      "thoughtful",
+      "space",
+      "emotional"
+    ],
+    "director": "Christopher Nolan",
+    "cast": [
+      "Matthew McConaughey",
+      "Anne Hathaway"
+    ],
+    "status": "classic",
+    "watch_providers_mock": [
+      "Prime Video",
+      "Netflix"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 85,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Interstellar 2014 official trailer"
+  },
+  {
+    "id": "inception",
+    "tmdb_id": null,
+    "title": "Inception",
+    "original_language": "en",
+    "release_date": "2010-07-16",
+    "year": 2010,
+    "genres": [
+      {
+        "id": 878,
+        "name": "Science Fiction"
+      },
+      {
+        "id": 28,
+        "name": "Action"
+      },
+      {
+        "id": 53,
+        "name": "Thriller"
+      }
+    ],
+    "runtime_min": 148,
+    "vote_average": 8.4,
+    "age_rating": "PG-13",
+    "overview": "A thief who steals secrets through dreams is asked to plant an idea instead.",
+    "mood_tags": [
+      "twisty",
+      "exciting",
+      "thoughtful"
+    ],
+    "director": "Christopher Nolan",
+    "cast": [
+      "Leonardo DiCaprio"
+    ],
+    "status": "classic",
+    "watch_providers_mock": [
+      "Netflix"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 80,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Inception 2010 official trailer"
+  },
+  {
+    "id": "dark-knight",
+    "tmdb_id": null,
+    "title": "The Dark Knight",
+    "original_language": "en",
+    "release_date": "2008-07-18",
+    "year": 2008,
+    "genres": [
+      {
+        "id": 28,
+        "name": "Action"
+      },
+      {
+        "id": 80,
+        "name": "Crime"
+      },
+      {
+        "id": 18,
+        "name": "Drama"
+      }
+    ],
+    "runtime_min": 152,
+    "vote_average": 8.5,
+    "age_rating": "PG-13",
+    "overview": "Batman faces the Joker, a criminal mastermind who wants to watch Gotham burn.",
+    "mood_tags": [
+      "dark",
+      "exciting",
+      "tense"
+    ],
+    "director": "Christopher Nolan",
+    "cast": [
+      "Christian Bale",
+      "Heath Ledger"
+    ],
+    "status": "classic",
+    "watch_providers_mock": [
+      "HBO Max"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 78,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "The Dark Knight 2008 official trailer"
+  },
+  {
+    "id": "shawshank",
+    "tmdb_id": null,
+    "title": "The Shawshank Redemption",
+    "original_language": "en",
+    "release_date": "1994-09-23",
+    "year": 1994,
+    "genres": [
+      {
+        "id": 18,
+        "name": "Drama"
+      },
+      {
+        "id": 80,
+        "name": "Crime"
+      }
+    ],
+    "runtime_min": 142,
+    "vote_average": 8.7,
+    "age_rating": "R",
+    "overview": "Two imprisoned men bond over years, finding hope and redemption.",
+    "mood_tags": [
+      "inspiring",
+      "emotional",
+      "thoughtful"
+    ],
+    "director": "Frank Darabont",
+    "cast": [
+      "Tim Robbins",
+      "Morgan Freeman"
+    ],
+    "status": "classic",
+    "watch_providers_mock": [
+      "Netflix"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 75,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "The Shawshank Redemption 1994 official trailer"
+  },
+  {
+    "id": "parasite",
+    "tmdb_id": null,
+    "title": "Parasite",
+    "original_language": "ko",
+    "release_date": "2019-05-30",
+    "year": 2019,
+    "genres": [
+      {
+        "id": 53,
+        "name": "Thriller"
+      },
+      {
+        "id": 35,
+        "name": "Comedy"
+      },
+      {
+        "id": 18,
+        "name": "Drama"
+      }
+    ],
+    "runtime_min": 132,
+    "vote_average": 8.5,
+    "age_rating": "R",
+    "overview": "A poor family schemes its way into a wealthy household - until things spiral.",
+    "mood_tags": [
+      "twisty",
+      "dark",
+      "thoughtful"
+    ],
+    "director": "Bong Joon Ho",
+    "cast": [],
+    "status": "classic",
+    "watch_providers_mock": [
+      "Prime Video",
+      "MUBI"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 70,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Parasite 2019 official trailer"
+  },
+  {
+    "id": "spirited-away",
+    "tmdb_id": null,
+    "title": "Spirited Away",
+    "original_language": "ja",
+    "release_date": "2001-07-20",
+    "year": 2001,
+    "genres": [
+      {
+        "id": 16,
+        "name": "Animation"
+      },
+      {
+        "id": 14,
+        "name": "Fantasy"
+      },
+      {
+        "id": 10751,
+        "name": "Family"
+      }
+    ],
+    "runtime_min": 125,
+    "vote_average": 8.5,
+    "age_rating": "PG",
+    "overview": "A girl trapped in a spirit world must work in a bathhouse to free her parents.",
+    "mood_tags": [
+      "family",
+      "magical",
+      "cozy"
+    ],
+    "director": "Hayao Miyazaki",
+    "cast": [],
+    "status": "classic",
+    "watch_providers_mock": [
+      "Netflix",
+      "HBO Max"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 72,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Spirited Away 2001 official trailer"
+  },
+  {
+    "id": "coco",
+    "tmdb_id": null,
+    "title": "Coco",
+    "original_language": "en",
+    "release_date": "2017-11-22",
+    "year": 2017,
+    "genres": [
+      {
+        "id": 16,
+        "name": "Animation"
+      },
+      {
+        "id": 10751,
+        "name": "Family"
+      },
+      {
+        "id": 10402,
+        "name": "Music"
+      },
+      {
+        "id": 14,
+        "name": "Fantasy"
+      }
+    ],
+    "runtime_min": 105,
+    "vote_average": 8.2,
+    "age_rating": "PG",
+    "overview": "A boy who dreams of music journeys into the Land of the Dead.",
+    "mood_tags": [
+      "family",
+      "emotional",
+      "music",
+      "colorful"
+    ],
+    "director": null,
+    "cast": [],
+    "status": "classic",
+    "watch_providers_mock": [
+      "Disney+"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 70,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Coco 2017 official trailer"
+  },
+  {
+    "id": "top-gun-maverick",
+    "tmdb_id": null,
+    "title": "Top Gun: Maverick",
+    "original_language": "en",
+    "release_date": "2022-05-27",
+    "year": 2022,
+    "genres": [
+      {
+        "id": 28,
+        "name": "Action"
+      },
+      {
+        "id": 18,
+        "name": "Drama"
+      }
+    ],
+    "runtime_min": 131,
+    "vote_average": 8.2,
+    "age_rating": "PG-13",
+    "overview": "Maverick trains a new generation of pilots for a near-impossible mission.",
+    "mood_tags": [
+      "exciting",
+      "inspiring",
+      "friends"
+    ],
+    "director": "Joseph Kosinski",
+    "cast": [
+      "Tom Cruise"
+    ],
+    "status": "classic",
+    "watch_providers_mock": [
+      "Prime Video"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 68,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Top Gun: Maverick 2022 official trailer"
+  },
+  {
+    "id": "oppenheimer",
+    "tmdb_id": null,
+    "title": "Oppenheimer",
+    "original_language": "en",
+    "release_date": "2023-07-21",
+    "year": 2023,
+    "genres": [
+      {
+        "id": 18,
+        "name": "Drama"
+      },
+      {
+        "id": 36,
+        "name": "History"
+      }
+    ],
+    "runtime_min": 180,
+    "vote_average": 8.1,
+    "age_rating": "R",
+    "overview": "The story of the physicist who led the creation of the atomic bomb.",
+    "mood_tags": [
+      "thoughtful",
+      "epic",
+      "dark"
+    ],
+    "director": "Christopher Nolan",
+    "cast": [
+      "Cillian Murphy"
+    ],
+    "status": "classic",
+    "watch_providers_mock": [
+      "Prime Video"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 69,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Oppenheimer 2023 official trailer"
+  },
+  {
+    "id": "la-la-land",
+    "tmdb_id": null,
+    "title": "La La Land",
+    "original_language": "en",
+    "release_date": "2016-12-09",
+    "year": 2016,
+    "genres": [
+      {
+        "id": 10749,
+        "name": "Romance"
+      },
+      {
+        "id": 10402,
+        "name": "Music"
+      },
+      {
+        "id": 35,
+        "name": "Comedy"
+      },
+      {
+        "id": 18,
+        "name": "Drama"
+      }
+    ],
+    "runtime_min": 128,
+    "vote_average": 7.9,
+    "age_rating": "PG-13",
+    "overview": "A jazz pianist and an aspiring actress fall in love while chasing dreams in LA.",
+    "mood_tags": [
+      "romantic",
+      "music",
+      "date_night",
+      "bittersweet"
+    ],
+    "director": "Damien Chazelle",
+    "cast": [
+      "Ryan Gosling",
+      "Emma Stone"
+    ],
+    "status": "classic",
+    "watch_providers_mock": [
+      "Netflix"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 66,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "La La Land 2016 official trailer"
+  },
+  {
+    "id": "grand-budapest",
+    "tmdb_id": null,
+    "title": "The Grand Budapest Hotel",
+    "original_language": "en",
+    "release_date": "2014-03-28",
+    "year": 2014,
+    "genres": [
+      {
+        "id": 35,
+        "name": "Comedy"
+      },
+      {
+        "id": 80,
+        "name": "Crime"
+      },
+      {
+        "id": 12,
+        "name": "Adventure"
+      }
+    ],
+    "runtime_min": 99,
+    "vote_average": 8.0,
+    "age_rating": "R",
+    "overview": "A legendary concierge and his lobby boy get swept up in a stolen-painting caper.",
+    "mood_tags": [
+      "funny",
+      "quirky",
+      "stylish"
+    ],
+    "director": "Wes Anderson",
+    "cast": [
+      "Ralph Fiennes"
+    ],
+    "status": "classic",
+    "watch_providers_mock": [
+      "Disney+"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 60,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "The Grand Budapest Hotel 2014 official trailer"
+  },
+  {
+    "id": "knives-out",
+    "tmdb_id": null,
+    "title": "Knives Out",
+    "original_language": "en",
+    "release_date": "2019-11-27",
+    "year": 2019,
+    "genres": [
+      {
+        "id": 9648,
+        "name": "Mystery"
+      },
+      {
+        "id": 35,
+        "name": "Comedy"
+      },
+      {
+        "id": 80,
+        "name": "Crime"
+      }
+    ],
+    "runtime_min": 130,
+    "vote_average": 7.9,
+    "age_rating": "PG-13",
+    "overview": "A detective investigates the death of a wealthy crime novelist and his scheming family.",
+    "mood_tags": [
+      "twisty",
+      "funny",
+      "friends"
+    ],
+    "director": "Rian Johnson",
+    "cast": [
+      "Daniel Craig",
+      "Ana de Armas"
+    ],
+    "status": "classic",
+    "watch_providers_mock": [
+      "Prime Video"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 62,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Knives Out 2019 official trailer"
+  },
+  {
+    "id": "get-out",
+    "tmdb_id": null,
+    "title": "Get Out",
+    "original_language": "en",
+    "release_date": "2017-02-24",
+    "year": 2017,
+    "genres": [
+      {
+        "id": 27,
+        "name": "Horror"
+      },
+      {
+        "id": 53,
+        "name": "Thriller"
+      },
+      {
+        "id": 9648,
+        "name": "Mystery"
+      }
+    ],
+    "runtime_min": 104,
+    "vote_average": 7.7,
+    "age_rating": "R",
+    "overview": "A weekend visit to a girlfriend's family turns deeply unsettling.",
+    "mood_tags": [
+      "scary",
+      "twisty",
+      "thoughtful"
+    ],
+    "director": "Jordan Peele",
+    "cast": [],
+    "status": "classic",
+    "watch_providers_mock": [
+      "Netflix"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 58,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Get Out 2017 official trailer"
+  },
+  {
+    "id": "mad-max-fury-road",
+    "tmdb_id": null,
+    "title": "Mad Max: Fury Road",
+    "original_language": "en",
+    "release_date": "2015-05-15",
+    "year": 2015,
+    "genres": [
+      {
+        "id": 28,
+        "name": "Action"
+      },
+      {
+        "id": 12,
+        "name": "Adventure"
+      },
+      {
+        "id": 878,
+        "name": "Science Fiction"
+      }
+    ],
+    "runtime_min": 120,
+    "vote_average": 8.1,
+    "age_rating": "R",
+    "overview": "In a desert wasteland, Furiosa and Max flee a tyrant in a relentless chase.",
+    "mood_tags": [
+      "exciting",
+      "visually_stunning"
+    ],
+    "director": "George Miller",
+    "cast": [
+      "Charlize Theron",
+      "Tom Hardy"
+    ],
+    "status": "classic",
+    "watch_providers_mock": [
+      "HBO Max"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 60,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Mad Max: Fury Road 2015 official trailer"
+  },
+  {
+    "id": "everything-everywhere",
+    "tmdb_id": null,
+    "title": "Everything Everywhere All at Once",
+    "original_language": "en",
+    "release_date": "2022-03-25",
+    "year": 2022,
+    "genres": [
+      {
+        "id": 878,
+        "name": "Science Fiction"
+      },
+      {
+        "id": 35,
+        "name": "Comedy"
+      },
+      {
+        "id": 28,
+        "name": "Action"
+      }
+    ],
+    "runtime_min": 139,
+    "vote_average": 7.8,
+    "age_rating": "R",
+    "overview": "A laundromat owner must connect with alternate versions of herself to save the multiverse.",
+    "mood_tags": [
+      "quirky",
+      "emotional",
+      "funny"
+    ],
+    "director": "Daniels",
+    "cast": [
+      "Michelle Yeoh"
+    ],
+    "status": "classic",
+    "watch_providers_mock": [
+      "Prime Video"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 60,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Everything Everywhere All at Once 2022 official trailer"
+  },
+  {
+    "id": "about-time",
+    "tmdb_id": null,
+    "title": "About Time",
+    "original_language": "en",
+    "release_date": "2013-09-04",
+    "year": 2013,
+    "genres": [
+      {
+        "id": 10749,
+        "name": "Romance"
+      },
+      {
+        "id": 35,
+        "name": "Comedy"
+      },
+      {
+        "id": 14,
+        "name": "Fantasy"
+      }
+    ],
+    "runtime_min": 123,
+    "vote_average": 7.8,
+    "age_rating": "R",
+    "overview": "A young man who can travel in time learns what really matters in love and family.",
+    "mood_tags": [
+      "romantic",
+      "feel_good",
+      "cozy",
+      "date_night"
+    ],
+    "director": "Richard Curtis",
+    "cast": [
+      "Domhnall Gleeson",
+      "Rachel McAdams"
+    ],
+    "status": "classic",
+    "watch_providers_mock": [
+      "Netflix"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 55,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "About Time 2013 official trailer"
+  },
+  {
+    "id": "paddington-2",
+    "tmdb_id": null,
+    "title": "Paddington 2",
+    "original_language": "en",
+    "release_date": "2017-11-10",
+    "year": 2017,
+    "genres": [
+      {
+        "id": 10751,
+        "name": "Family"
+      },
+      {
+        "id": 35,
+        "name": "Comedy"
+      },
+      {
+        "id": 12,
+        "name": "Adventure"
+      }
+    ],
+    "runtime_min": 103,
+    "vote_average": 7.8,
+    "age_rating": "PG",
+    "overview": "Paddington is framed for theft and must clear his name.",
+    "mood_tags": [
+      "family",
+      "feel_good",
+      "funny",
+      "cozy"
+    ],
+    "director": "Paul King",
+    "cast": [],
+    "status": "classic",
+    "watch_providers_mock": [
+      "Netflix"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 55,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Paddington 2 2017 official trailer"
+  },
+  {
+    "id": "winter-sleep",
+    "tmdb_id": null,
+    "title": "Winter Sleep (Kış Uykusu)",
+    "original_language": "tr",
+    "release_date": "2014-06-13",
+    "year": 2014,
+    "genres": [
+      {
+        "id": 18,
+        "name": "Drama"
+      }
+    ],
+    "runtime_min": 196,
+    "vote_average": 8.0,
+    "age_rating": "13+",
+    "overview": "A retired actor running a hotel in Cappadocia confronts tensions with family and tenants. Palme d'Or winner.",
+    "mood_tags": [
+      "thoughtful",
+      "slow",
+      "arthouse"
+    ],
+    "director": "Nuri Bilge Ceylan",
+    "cast": [],
+    "status": "classic",
+    "watch_providers_mock": [
+      "MUBI"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 40,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Winter Sleep (Kış Uykusu) 2014 official trailer"
+  },
+  {
+    "id": "ayla",
+    "tmdb_id": null,
+    "title": "Ayla: The Daughter of War",
+    "original_language": "tr",
+    "release_date": "2017-10-27",
+    "year": 2017,
+    "genres": [
+      {
+        "id": 18,
+        "name": "Drama"
+      },
+      {
+        "id": 10752,
+        "name": "War"
+      },
+      {
+        "id": 36,
+        "name": "History"
+      }
+    ],
+    "runtime_min": 125,
+    "vote_average": 8.2,
+    "age_rating": "13+",
+    "overview": "A Turkish soldier in the Korean War rescues an orphaned girl - based on a true story.",
+    "mood_tags": [
+      "emotional",
+      "inspiring"
+    ],
+    "director": "Can Ulkay",
+    "cast": [],
+    "status": "classic",
+    "watch_providers_mock": [
+      "Netflix"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 45,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Ayla: The Daughter of War 2017 official trailer"
+  },
+  {
+    "id": "miracle-cell-7",
+    "tmdb_id": null,
+    "title": "Miracle in Cell No. 7 (7. Koğuştaki Mucize)",
+    "original_language": "tr",
+    "release_date": "2019-10-11",
+    "year": 2019,
+    "genres": [
+      {
+        "id": 18,
+        "name": "Drama"
+      },
+      {
+        "id": 10751,
+        "name": "Family"
+      }
+    ],
+    "runtime_min": 132,
+    "vote_average": 8.2,
+    "age_rating": "13+",
+    "overview": "A father with an intellectual disability is wrongly imprisoned and longs for his daughter.",
+    "mood_tags": [
+      "emotional",
+      "family"
+    ],
+    "director": "Mehmet Ada Öztekin",
+    "cast": [],
+    "status": "classic",
+    "watch_providers_mock": [
+      "Netflix"
+    ],
+    "box_office_worldwide_usd": null,
+    "popularity": 50,
+    "poster_path": null,
+    "backdrop_path": null,
+    "trailer_query": "Miracle in Cell No. 7 (7. Koğuştaki Mucize) 2019 official trailer"
+  }
+]
