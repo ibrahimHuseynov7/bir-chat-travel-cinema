@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Star, ExternalLink } from "lucide-react";
-import { CINEMAS, CITIES, type CinemaData, type FlightData, type Session, type ShopData } from "@/lib/bir";
+import { CINEMAS, CITIES, cinemaPageUrl, moviePageUrl, birmarketSearchUrl, type CinemaData, type FlightData, type Session, type ShopData, type Product } from "@/lib/bir";
 import { cinemaDay, flights } from "@/lib/chat.functions";
 
 const btn = "pill inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold bg-primary text-primary-foreground hover:opacity-85 transition";
@@ -47,13 +47,16 @@ export function CinemaCard({ data: initial, onPick }: { data: CinemaData; onPick
       {loading && <p className="text-sm text-muted-foreground">Loading sessions…</p>}
       {data.error && <p className="text-sm text-destructive">{data.error}</p>}
       {!loading && !data.error && !data.sessions.length && <p className="text-sm text-muted-foreground">No sessions found for this day.</p>}
+      {!loading && (data.error || !data.sessions.length) && (
+        <a href={cinemaPageUrl(data.slug)} target="_blank" rel="noreferrer" className={btn}>See sessions on CinemaPlus <ExternalLink className="size-4" /></a>
+      )}
       {[...byMovie.entries()].map(([movie, list]) => {
         const info = data.info[movie];
         const tags = [...new Set(list.flatMap((s) => [s.format, s.language, s.az_subtitles ? "AZ subs" : null]).filter(Boolean))];
         return (
           <div key={movie} className="rounded-xl bg-wash p-3">
             <div className="flex flex-wrap items-baseline gap-2">
-              <span className="font-semibold">{movie}</span>
+              <a href={moviePageUrl(list[0]!, data.slug)} target="_blank" rel="noreferrer" className="font-semibold underline-offset-2 hover:underline">{movie}</a>
               {info && <span className="text-xs text-muted-foreground">{info.year} · {info.runtime_min} min · {info.age_rating} · ★ {info.vote_average}</span>}
             </div>
             {info && <p className="mt-1 text-xs text-muted-foreground">{info.genres.join(", ")} — {info.overview}</p>}
@@ -72,7 +75,7 @@ export function CinemaCard({ data: initial, onPick }: { data: CinemaData; onPick
       {picked && (
         <div className="route-card flex flex-wrap items-center justify-between gap-3">
           <div className="text-sm"><b>{picked.movie}</b><br />{data.date} · {picked.time} · {picked.hall}{picked.language ? ` · ${picked.language}` : ""}{picked.price_azn ? ` · ${picked.price_azn} ₼` : ""}</div>
-          <a href="https://cinemastercard.az/en/" target="_blank" rel="noreferrer" className={btn}>Pick seats on CinemaPlus <ExternalLink className="size-4" /></a>
+          <a href={moviePageUrl(picked, data.slug)} target="_blank" rel="noreferrer" className={btn}>Buy tickets on CinemaPlus <ExternalLink className="size-4" /></a>
         </div>
       )}
     </div>
@@ -102,31 +105,35 @@ export function AviaCard({ data: initial }: { data: FlightData }) {
         <button disabled={loading} className={`${btn} col-span-2 justify-center sm:col-span-5`}>{loading ? "Searching…" : "Update prices"}</button>
       </form>
       {data.error && <p className="text-sm text-destructive">{data.error}</p>}
+      {data.offers.length > 0 && data.nearby && <p className="text-sm text-muted-foreground">No cached prices for these exact dates. Cheapest dates this month:</p>}
       {data.offers.length > 0 && (
         <ul className="space-y-2">
           {data.offers.map((o, i) => (
             <li key={i}>
               <a href={o.link} target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-xl bg-wash px-3 py-2 text-sm hover:bg-primary hover:text-primary-foreground transition">
-                <span><b>{o.airline} {o.flight_number}</b> · {o.departure_at.slice(0, 10)} {o.departure_at.slice(11, 16)} · {o.transfers === 0 ? "direct" : `${o.transfers} transfer${o.transfers > 1 ? "s" : ""}`}</span>
-                <span className="font-display">from ${o.price_usd}</span>
+                <span><b>{o.airline} {o.flight_number}</b> · {o.departure_at.slice(0, 10)} {o.departure_at.slice(11, 16)}{o.return_at ? ` → ${o.return_at.slice(0, 10)}` : ""} · {o.transfers === 0 ? "direct" : `${o.transfers} transfer${o.transfers > 1 ? "s" : ""}`}</span>
+                <span className="text-right">
+                  <span className="font-display">from ${o.price_usd * data.adults}</span>
+                  {data.adults > 1 && <span className="block text-xs opacity-70">${o.price_usd} × {data.adults} passengers</span>}
+                </span>
               </a>
             </li>
           ))}
         </ul>
       )}
-      {data.search_url && !data.offers.length && !data.error && <p className="text-sm text-muted-foreground">No cached prices for this route — check live prices on AviaSales.</p>}
-      {data.search_url && <a href={data.search_url} target="_blank" rel="noreferrer" className={btn}>Search on AviaSales <ExternalLink className="size-4" /></a>}
+      {!data.offers.length && !data.error && (
+        <p className="text-sm text-muted-foreground">{data.destination ? "No cached prices for this route — check live prices on AviaSales." : "Tell me where you're flying, or search directly on AviaSales."}</p>
+      )}
+      <a href={data.search_url ?? "https://www.aviasales.com/"} target="_blank" rel="noreferrer" className={btn}>Search on AviaSales <ExternalLink className="size-4" /></a>
       <p className="text-xs text-muted-foreground">Prices are cached "from" prices. Booking and payment happen on aviasales.com.</p>
     </div>
   );
 }
 
-export function ShopCard({ data }: { data: ShopData }) {
-  if (data.error) return <div className="route-card text-sm text-destructive">{data.error}</div>;
-  if (!data.products.length) return <div className="route-card text-sm text-muted-foreground">No matching products found on Birmarket.</div>;
+function ProductGrid({ products }: { products: Product[] }) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-      {data.products.map((p) => (
+      {products.map((p) => (
         <div key={p.id} className="route-card flex flex-col gap-2 p-3">
           {p.image_url && <img src={p.image_url} alt={p.name} loading="lazy" className="aspect-square w-full rounded-xl bg-card object-contain" />}
           <div className="line-clamp-3 text-sm font-medium">{p.name}</div>
@@ -138,6 +145,33 @@ export function ShopCard({ data }: { data: ShopData }) {
           <a href={p.url} target="_blank" rel="noreferrer" className={`${btn} justify-center text-xs`}>View on Birmarket</a>
         </div>
       ))}
+    </div>
+  );
+}
+
+export function ShopCard({ data }: { data: ShopData }) {
+  const searchLink = (label: string) => (
+    <a href={birmarketSearchUrl(data.query)} target="_blank" rel="noreferrer" className={`${btn} self-start`}>{label} <ExternalLink className="size-4" /></a>
+  );
+  const alternatives = data.alternatives ?? [];
+  if (data.error || (!data.products.length && !alternatives.length)) {
+    return (
+      <div className="route-card flex flex-col gap-3 text-sm">
+        <p className={data.error ? "text-destructive" : "text-muted-foreground"}>{data.error ?? "No matching products found in our Birmarket catalog."}</p>
+        {searchLink("Search on Birmarket")}
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-3">
+      {data.products.length ? <ProductGrid products={data.products} /> : <p className="text-sm text-muted-foreground">Nothing matches in your price range on Birmarket.</p>}
+      {alternatives.length > 0 && (
+        <>
+          <div className="mt-2 text-sm font-semibold">Cheaper alternatives</div>
+          <ProductGrid products={alternatives} />
+        </>
+      )}
+      {searchLink("More on Birmarket")}
     </div>
   );
 }

@@ -22,11 +22,6 @@ export const Route = createFileRoute("/")({
 });
 
 type Msg = { id: number; role: "user" | "assistant"; text: string; result?: ChatResult };
-const LABELS: Record<Exclude<R, "general">, [string, string, string]> = {
-  cinema: ["CinemaPlus", "Cinema", "Show me CinemaPlus cinemas"],
-  avia: ["AviaSales", "Avia", "I want to book a flight"],
-  shopping: ["Shopping", "Shop", "Help me shop for a gift"],
-};
 const NAMES: Record<R, string> = { cinema: "CinemaPlus", avia: "AviaSales", shopping: "Shopping Assistant", general: "Bir Chat" };
 
 function Index() {
@@ -63,19 +58,11 @@ function Index() {
   return (
     <div className="flex h-dvh flex-col bg-background">
       <header className="border-b-2 border-foreground">
-        <div className="mx-auto flex max-w-[820px] items-center justify-between gap-2 px-4 py-3">
+        <div className="mx-auto flex max-w-[820px] items-center gap-2 px-4 py-3">
           <button onClick={() => { setMessages([]); setActive(null); }} className="flex items-center gap-2">
             <BirLogo active={active} className="h-[34px] w-[21px]" />
             <span className="font-display text-xl">bir chat</span>
           </button>
-          <nav className="flex gap-1.5">
-            {(Object.keys(LABELS) as Exclude<R, "general">[]).map((k) => (
-              <button key={k} disabled={waiting} onClick={() => void sendMessage(LABELS[k][2])}
-                className={`pill px-3 py-1 text-xs font-semibold transition sm:text-sm ${active === k ? "bg-primary text-primary-foreground" : "hover:bg-wash"}`}>
-                <span className="hidden sm:inline">{LABELS[k][0]}</span><span className="sm:hidden">{LABELS[k][1]}</span>
-              </button>
-            ))}
-          </nav>
         </div>
       </header>
 

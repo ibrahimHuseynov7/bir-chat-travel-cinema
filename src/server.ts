@@ -46,6 +46,8 @@ function isH3SwallowedErrorBody(body: string): boolean {
 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    // Kick off the background refresh of cinema/Birmarket data (no-op while it's fresh).
+    void import("./lib/scrapers.server").then((m) => m.warmUp()).catch(() => {});
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
