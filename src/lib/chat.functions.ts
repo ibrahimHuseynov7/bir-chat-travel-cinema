@@ -67,7 +67,7 @@ function fallbackPlan(message: string, active: Route | null): Plan {
   if (route === "avia") {
     const found = Object.keys(CITIES).filter((c) => t.includes(c)).sort((a, b) => t.indexOf(a) - t.indexOf(b)).map((c) => CITIES[c]);
     const dest = found.find((c) => c !== "GYD") ?? "";
-    return { route, reply: "Let's find you a flight.", avia: { origin: found.length > 1 ? found[0] : "GYD", destination: dest, adults: 1 } };
+    return { route, reply: "Let's find you a flight.", avia: { origin: (found.length > 1 ? found[0] : undefined) ?? "GYD", destination: dest, adults: 1 } };
   }
   if (route === "shopping") return { route, reply: "Here are some picks from Birmarket.", shopping: { query: message, max_price: Number(t.match(/(\d+)\s*(azn|₼|manat)/)?.[1]) || null } };
   return { route: "general", reply: "I can help with CinemaPlus sessions, flights on AviaSales, or shopping on Birmarket. What do you need?" };
