@@ -47,6 +47,8 @@ const EntrySchema = z.object({
   tools: z.array(ToolSchema).min(1),
   module_instructions: z.string().default(""),
   result_kinds: z.array(z.string()).default([]),
+  // The Module Agent also gets the user's own words this turn (e.g. shopping: colour / size the task left out).
+  pass_user_message: z.boolean().default(false),
 });
 export type RegistryEntry = z.infer<typeof EntrySchema>;
 export type ToolConfig = z.infer<typeof ToolSchema>;

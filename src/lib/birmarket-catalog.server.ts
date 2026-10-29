@@ -39,7 +39,7 @@ export interface CatalogSearchParams {
   query: string;
   categoryId?: number | undefined;
   /** Category name as the user / model wrote it; resolved against /categories/all. */
-  category?: string;
+  category?: string | undefined;
   /** Query before inferCategory() removed the category word; used if the category anchor finds nothing. */
   fullQuery?: string;
   priceMin?: number | null;
@@ -615,6 +615,123 @@ export async function getBestsellers(limit = 6): Promise<CatalogProduct[]> {
   } catch (e) {
     throw new CatalogUnavailableError("bestsellers", e);
   }
+}
+
+/** A 404 means "no such product", not an outage. */
+const isNotFound = (e: unknown) =>
+  e instanceof Error && /MP Catalog API error: 404\b/.test(e.message);
+/** Outages become CatalogUnavailableError; a 4xx (our parameters are wrong) is rethrown for the model. */
+function rethrow(operation: string, e: unknown): never {
+  if (isClientError(e)) throw e;
+  throw new CatalogUnavailableError(operation, e);
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export interface CatalogProductDetail extends CatalogProduct {
+  description: string;
+  attributes: { key: string; value: string }[];
+  variantCode?: string;
+  isRefundable?: boolean;
+}
+
+export async function getProductDetails(id: string): Promise<CatalogProductDetail | null> {
+  try {
+    const p = (await apiGet(`/api/v1/products/${encodeURIComponent(id)}`)) as any;
+    if (!p?.id) return null;
+    return {
+      ...normalizeProduct(p),
+      description: String(p.description ?? ""),
+      attributes: (Array.isArray(p.custom_fields) ? p.custom_fields : [])
+        .filter((cf: any) => Array.isArray(cf?.values))
+        .map((cf: any) => ({ key: `field_${cf.master_field_id}`, value: cf.values.join(", ") })),
+      ...(typeof p.variant_code === "string" ? { variantCode: p.variant_code } : {}),
+      ...(typeof p.is_refundable === "boolean" ? { isRefundable: p.is_refundable } : {}),
+    };
+  } catch (e) {
+    if (isNotFound(e)) return null;
+    rethrow("details", e);
+  }
+}
+
+async function productList(path: string, operation: string): Promise<CatalogProduct[]> {
+  try {
+    const r = (await apiGet(path)) as any;
+    const list = Array.isArray(r) ? r : Array.isArray(r?.products) ? r.products : [];
+    return list.map(normalizeProduct);
+  } catch (e) {
+    if (isNotFound(e)) return [];
+    rethrow(operation, e);
+  }
+}
+export const getSimilarProducts = (id: string) =>
+  productList(`/api/v1/products/${encodeURIComponent(id)}/similars`, "similar");
+export const getComplementaryProducts = (id: string) =>
+  productList(`/api/v1/products/${encodeURIComponent(id)}/complementaries`, "complementary");
+export const getProductVariations = (variantCode: string) =>
+  productList(`/api/v1/products/variation?code=${encodeURIComponent(variantCode)}`, "variations");
+
+export interface CatalogOffer {
+  sellerName?: string;
+  sellerRating?: number;
+  price: number;
+  originalPrice?: number;
+  discountPercent?: number;
+  instalmentMonths?: number;
+  instalmentMonthlyPayment?: number;
+  available: boolean;
+}
+
+export async function getProductOffers(id: string): Promise<CatalogOffer[]> {
+  try {
+    const r = (await apiGet(`/api/v1/products/${encodeURIComponent(id)}/offers`)) as any;
+    return (Array.isArray(r?.offers) ? r.offers : []).map((o: any): CatalogOffer => {
+      const price = Number(o?.retail_price ?? 0);
+      const old = Number(o?.old_price ?? 0);
+      const months = o?.installment_enabled ? Number(o?.max_installment_months ?? 0) || 0 : 0;
+      return {
+        ...(o?.seller?.marketing_name?.name ? { sellerName: o.seller.marketing_name.name } : {}),
+        ...(typeof o?.seller?.rating === "number" ? { sellerRating: o.seller.rating } : {}),
+        price,
+        ...(old > price
+          ? { originalPrice: old, discountPercent: Math.round(((old - price) / old) * 100) }
+          : {}),
+        ...(months
+          ? {
+              instalmentMonths: months,
+              instalmentMonthlyPayment: Math.round((price / months) * 100) / 100,
+            }
+          : {}),
+        available: Number(o?.qty ?? 0) > 0,
+      };
+    });
+  } catch (e) {
+    if (isNotFound(e)) return [];
+    rethrow("offers", e);
+  }
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+// ---------- untrusted text ----------
+
+// Product titles, descriptions and seller names are written by third parties and reach the model through tool
+// results. Text that reads as an instruction to the assistant is replaced before the model sees it; the UI
+// cards keep the original text.
+export const FILTERED_MARKER = "[filtered: instruction-like text removed]";
+const INJECTION_RX = [
+  /\b(ignore|disregard|forget|override)\b.{0,40}\b(previous|prior|above|all|earlier|system)\b.{0,30}\b(instructions?|rules?|prompts?|messages?)\b/i,
+  /\b(system|developer)\s*prompt\b/i,
+  /\byou are now\b|\bact as\b.{0,30}\b(ai|assistant|dan|unfiltered)\b/i,
+  /<\|?(im_start|im_end|system|endoftext)\|?>|\[\/?(inst|system)\]|###\s*(system|instruction)/i,
+  /^\s*(system|assistant|developer)\s*:/im,
+  /(игнорир|забудь).{0,40}(инструкц|правил)|системн\S*\s+промпт/i,
+  /(əvvəlki|bütün).{0,30}(təlimat|qayda).{0,30}(unut|nəzərə alma|ignor)/i,
+  /(önceki|tüm).{0,30}(talimat|kural).{0,30}(unut|yok say|görmezden)/i,
+];
+export function neutralizeUntrustedText(value: unknown, maxLength = 200): string {
+  if (typeof value !== "string") return "";
+  const s = value.normalize("NFKC").replace(/[\u200B-\u200F\u2060\uFEFF]/g, "");
+  const capped = s.length > maxLength ? `${s.slice(0, maxLength)}…` : s;
+  return INJECTION_RX.some((rx) => rx.test(capped)) ? FILTERED_MARKER : capped;
 }
 
 // ---------- follow-up chips ----------

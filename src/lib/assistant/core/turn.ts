@@ -304,6 +304,7 @@ export async function handleTurn(req: TurnRequest): Promise<TurnResponse> {
           topic.summary,
           session,
           getResult(session, topic.last_result_ref),
+          entry.pass_user_message ? pre.display : undefined,
         );
         moduleResult = m.result;
         log["module"] = {

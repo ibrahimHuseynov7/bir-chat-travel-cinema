@@ -293,7 +293,230 @@ export const AGENT_ADAPTERS: Record<string, AgentAdapter> = {
       })),
     };
   },
+
+  // ---- Shopping: the Birmarket shopping assistant's catalog tools (same names and parameters). ----
+  // Products become ready-made cards (offerItems); the model sees a trimmed, sanitised view and picks
+  // products by ref, so prices, images and links always come from the catalog.
+
+  birmarket_search_v1: async (args, _tool, ctx) => {
+    const cat = await import("@/lib/birmarket-catalog.server");
+    const sort = str(args["sort"]);
+    const params: CatalogSearchParams = {
+      query: str(args["query"]),
+      category: str(args["category"]) || undefined,
+      priceMin: numArg(args["price_min"]) ?? null,
+      priceMax: numArg(args["price_max"]) ?? null,
+      brand: str(args["brand"]) || undefined,
+      sort: CATALOG_SORTS.has(sort) ? (sort as CatalogSort) : undefined,
+      withDiscount: args["with_discount"] === true,
+      limit: numArg(args["limit"]) ?? 20,
+    };
+    try {
+      const r = await cat.searchCatalog(params);
+      const inStock = r.products.filter((p) => p.availability !== "out_of_stock");
+      if (!ctx.suggestions.length)
+        ctx.suggestions.push(
+          ...cat.refinementChips(inStock, {
+            brand: r.brandDropped ? undefined : params.brand,
+            priceMin: params.priceMin ?? null,
+            priceMax: params.priceMax ?? null,
+            sort: params.sort,
+          }),
+        );
+      return {
+        ...(r.brandDropped
+          ? {
+              notice: `No in-stock "${r.brandDropped}" products matched, so the search was repeated without the brand filter. These products are NOT necessarily ${r.brandDropped}.`,
+            }
+          : {}),
+        ...productsForModel(cat, ctx, r.products),
+      };
+    } catch (e) {
+      if (!(e instanceof cat.CatalogUnavailableError))
+        return { error: (e as Error).message.slice(0, 300) };
+      // Catalog outage: the birmarket.az listing pages still give real products (fewer details).
+      const items = await birmarketPagesFallback(params).catch(() => [] as Item[]);
+      if (!items.length) return { error: "catalog_unavailable" };
+      offerItems(ctx, items);
+      return {
+        note: "Catalog API unavailable; these products come from the birmarket.az listing pages.",
+        products: items.map((i) => ({
+          ref: i.id,
+          title: cat.neutralizeUntrustedText(i.title, 160),
+          price: i.price.amount,
+          currency: "AZN",
+        })),
+      };
+    }
+  },
+
+  birmarket_details_v1: async (args, _tool, ctx) => {
+    const cat = await import("@/lib/birmarket-catalog.server");
+    const id = str(args["product_id"]).replace(/^p/, "");
+    if (!id) return { error: "product_id is required" };
+    const d = await catalogCall(cat, () => cat.getProductDetails(id));
+    if (!d || "error" in d) return d ?? { error: `product ${id} not found` };
+    offerItems(ctx, [catalogItem(d)]);
+    return {
+      ...trimProduct(cat, d),
+      description: cat.neutralizeUntrustedText(d.description, 800),
+      attributes: d.attributes
+        .slice(0, 15)
+        .map((a) => ({ key: a.key, value: cat.neutralizeUntrustedText(a.value, 120) })),
+      ...(d.variantCode ? { variantCode: d.variantCode } : {}),
+      ...(d.isRefundable != null ? { isRefundable: d.isRefundable } : {}),
+      ...(d.instalmentMonths
+        ? {
+            instalment: `${Math.round((d.price / d.instalmentMonths) * 100) / 100} AZN x ${d.instalmentMonths} months (Birbank)`,
+          }
+        : {}),
+    };
+  },
+
+  birmarket_similar_v1: async (args, _tool, ctx) => {
+    const cat = await import("@/lib/birmarket-catalog.server");
+    const id = str(args["product_id"]).replace(/^p/, "");
+    const r = await catalogCall(cat, () => cat.getSimilarProducts(id));
+    return Array.isArray(r) ? productsForModel(cat, ctx, r) : r;
+  },
+
+  birmarket_complementary_v1: async (args, _tool, ctx) => {
+    const cat = await import("@/lib/birmarket-catalog.server");
+    const id = str(args["product_id"]).replace(/^p/, "");
+    const r = await catalogCall(cat, () => cat.getComplementaryProducts(id));
+    return Array.isArray(r) ? productsForModel(cat, ctx, r) : r;
+  },
+
+  birmarket_bestsellers_v1: async (args, _tool, ctx) => {
+    const cat = await import("@/lib/birmarket-catalog.server");
+    const r = await catalogCall(cat, () =>
+      cat.getBestsellers(Math.min(numArg(args["limit"]) ?? 5, 20)),
+    );
+    return Array.isArray(r) ? productsForModel(cat, ctx, r) : r;
+  },
+
+  birmarket_suggestions_v1: async (args) => {
+    const cat = await import("@/lib/birmarket-catalog.server");
+    const s = await cat.getSuggestions(str(args["query"]), numArg(args["limit"]) ?? 5);
+    const clean = (xs: string[]) => xs.map((x) => cat.neutralizeUntrustedText(x, 80));
+    return {
+      predictedQueries: clean(s.predictedQueries),
+      categories: clean(s.categories.map((c) => c.name)),
+      brands: clean(s.brands),
+    };
+  },
+
+  birmarket_offers_v1: async (args) => {
+    const cat = await import("@/lib/birmarket-catalog.server");
+    const id = str(args["product_id"]).replace(/^p/, "");
+    const r = await catalogCall(cat, () => cat.getProductOffers(id));
+    if (!Array.isArray(r)) return r;
+    return {
+      offers: r.map((o) => ({
+        ...o,
+        ...(o.sellerName ? { sellerName: cat.neutralizeUntrustedText(o.sellerName, 80) } : {}),
+        currency: "AZN",
+      })),
+    };
+  },
+
+  birmarket_variations_v1: async (args, _tool, ctx) => {
+    const cat = await import("@/lib/birmarket-catalog.server");
+    const code = str(args["variant_code"]);
+    if (!code) return { error: "variant_code is required (call get_product_details first)" };
+    const r = await catalogCall(cat, () => cat.getProductVariations(code));
+    return Array.isArray(r) ? productsForModel(cat, ctx, r) : r;
+  },
 };
+
+// ---------- shopping helpers ----------
+
+type CatalogModule = typeof import("@/lib/birmarket-catalog.server");
+const CATALOG_SORTS = new Set(["relevance", "price_asc", "price_desc", "rating", "popularity"]);
+const numArg = (v: unknown): number | undefined => {
+  const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+};
+
+/** The model-facing view of a product (the Birmarket assistant's trimProduct): no images or URLs. */
+function trimProduct(cat: CatalogModule, p: CatalogProduct) {
+  return {
+    ref: `p${p.id}`,
+    title: cat.neutralizeUntrustedText(p.title, 160),
+    ...(p.brand ? { brand: cat.neutralizeUntrustedText(p.brand, 60) } : {}),
+    ...(p.category ? { category: cat.neutralizeUntrustedText(p.category, 80) } : {}),
+    price: p.price,
+    currency: "AZN",
+    ...(p.originalPrice ? { originalPrice: p.originalPrice } : {}),
+    ...(p.discountPercent ? { discountPercent: p.discountPercent } : {}),
+    availability: p.availability,
+    ...(p.rating ? { rating: p.rating } : {}),
+    ...(p.sellerName ? { sellerName: cat.neutralizeUntrustedText(p.sellerName, 80) } : {}),
+  };
+}
+
+/** Out-of-stock products are never offered as cards; the rest become refs the model can pick. */
+function productsForModel(cat: CatalogModule, ctx: ToolContext, products: CatalogProduct[]) {
+  const usable = products.filter((p) => p.availability !== "out_of_stock");
+  offerItems(ctx, usable.map(catalogItem));
+  return {
+    products: usable.map((p) => trimProduct(cat, p)),
+    ...(products.length > usable.length
+      ? { out_of_stock_hidden: products.length - usable.length }
+      : {}),
+  };
+}
+
+/** Runs a catalog call; an outage becomes {error: "catalog_unavailable"}, a 4xx the API's message. */
+async function catalogCall<T>(
+  cat: CatalogModule,
+  fn: () => Promise<T>,
+): Promise<T | { error: string }> {
+  try {
+    return await fn();
+  } catch (e) {
+    return {
+      error:
+        e instanceof cat.CatalogUnavailableError
+          ? "catalog_unavailable"
+          : (e as Error).message.slice(0, 300),
+    };
+  }
+}
+
+/** birmarket.az tag / brand listing pages + the background snapshot, used only when the catalog API is down. */
+async function birmarketPagesFallback(params: CatalogSearchParams): Promise<Item[]> {
+  const { getBirmarketProducts, searchProducts, warmUp, birmarketLiveSearch } =
+    await import("@/lib/scrapers.server");
+  warmUp();
+  const query = [params.category, params.brand, params.query].filter(Boolean).join(" ");
+  if (!query) return [];
+  const live = CONFIG.birmarketLive()
+    ? await birmarketLiveSearch(query).catch(() => ({ products: [] as Product[], urls: [] }))
+    : { products: [] as Product[], urls: [] };
+  const all = [
+    ...new Map(
+      [...(getBirmarketProducts() ?? []), ...live.products].map((p) => [p.id, p]),
+    ).values(),
+  ];
+  return searchProducts(all, query, params.priceMin ?? null, params.priceMax ?? null)
+    .products.slice(0, 10)
+    .map((p) => ({
+      id: `p${p.id}`,
+      kind: "product",
+      title: p.name,
+      subtitle: p.old_price ? `was ${p.old_price} AZN` : "",
+      attributes: {
+        ...(p.image_url ? { image: p.image_url } : {}),
+        ...(p.rating != null ? { rating: p.rating, reviews: p.reviews } : {}),
+        ...(p.old_price ? { old_price_azn: p.old_price } : {}),
+      },
+      price: { amount: p.price_azn, currency: p.price_azn == null ? null : "AZN" },
+      source_url: p.url,
+      verify: false,
+      action: { label: "View on Birmarket", type: "handoff_url" as const, value: p.url },
+    }));
+}
 
 /** Cinema slugs from the tool args (names or slugs), else every cinema in the city. */
 function cinemaSlugs(args: Args): string[] {
@@ -332,15 +555,6 @@ const num = (v: string | undefined) => {
   return v && Number.isFinite(n) && n > 0 ? n : null;
 };
 
-const CATALOG_SORTS: [RegExp, CatalogSort][] = [
-  [/cheap|price_asc|ucuz|дешев/i, "price_asc"],
-  [/expensive|price_desc|baha|дорог/i, "price_desc"],
-  [/rat|reyting|рейтинг/i, "rating"],
-  [/popular|bestsell|populyar|популяр/i, "popularity"],
-];
-const BESTSELLER_RX =
-  /^(ən çox satılan|en cox satilan|bestseller|populyar|хиты? продаж|популярн\S*)( məhsul\S*| товар\S*)?$/i;
-
 const catalogItem = (p: CatalogProduct): Item => ({
   id: `p${p.id}`,
   kind: "product",
@@ -356,97 +570,6 @@ const catalogItem = (p: CatalogProduct): Item => ({
   verify: false,
   action: { label: "View on Birmarket", type: "handoff_url", value: p.url },
 });
-
-/**
- * Shopping on the Birmarket catalog API (the Birmarket shopping assistant's search logic): category anchoring,
- * brand / sort / discount filters, out-of-budget alternatives and /suggests recovery. Throws when the API is
- * unavailable so the caller can fall back to the listing pages.
- */
-async function birmarketCatalogResult(
-  query: string,
-  slots: Record<string, string>,
-  linkItem: (title: string) => Item,
-): Promise<ModuleResult> {
-  const cat = await import("@/lib/birmarket-catalog.server");
-  const inStock = (ps: CatalogProduct[]) => ps.filter((p) => p.availability !== "out_of_stock");
-  if (BESTSELLER_RX.test(query.trim())) {
-    const best = inStock(await cat.getBestsellers(6));
-    if (best.length)
-      return {
-        status: "ok",
-        summary: "Birmarket bestsellers right now (all categories).",
-        items: best.map(catalogItem),
-        suggestions: [],
-        need_input: null,
-        refinements: [],
-      };
-  }
-  const min = num(slots["budget_min"]),
-    max = num(slots["budget_max"]);
-  const brand = (slots["brand"] ?? "").trim() || undefined;
-  const sort = CATALOG_SORTS.find(([rx]) => rx.test(slots["sort"] ?? ""))?.[1];
-  const withDiscount = /^(true|yes|1)$/i.test((slots["discount_only"] ?? "").trim());
-  const inferred = cat.inferCategory(query);
-  const base: CatalogSearchParams = {
-    query: inferred?.query ?? query,
-    ...(inferred ? { categoryId: inferred.categoryId, fullQuery: query } : {}),
-    brand,
-    sort,
-    withDiscount,
-  };
-  const range = `${min ? ` from ${min} AZN` : ""}${max ? ` up to ${max} AZN` : ""}`;
-  const r = await cat.searchCatalog({ ...base, priceMin: min, priceMax: max });
-  const found = inStock(r.products);
-  if (found.length) {
-    return {
-      status: "ok",
-      summary:
-        `${found.length} Birmarket products for "${query}"${range}${withDiscount ? ", discounted only" : ""}.` +
-        (r.brandDropped
-          ? ` Nothing from ${r.brandDropped} matched, so other brands are shown.`
-          : ""),
-      items: found.slice(0, 6).map(catalogItem),
-      suggestions: cat.refinementChips(found, {
-        brand: r.brandDropped ? undefined : brand,
-        priceMin: min,
-        priceMax: max,
-        sort,
-        query,
-      }),
-      need_input: null,
-      refinements: [],
-    };
-  }
-  // Nothing within the budget: show the closest products outside it instead of a dead end.
-  if (min || max) {
-    const wide = inStock((await cat.searchCatalog(base)).products).sort((a, b) =>
-      max ? a.price - b.price : b.price - a.price,
-    );
-    if (wide.length)
-      return {
-        status: "partial",
-        summary: `Nothing for "${query}"${range}; these are the closest prices.`,
-        items: wide.slice(0, 6).map(catalogItem),
-        suggestions: [],
-        need_input: null,
-        refinements: ["other brands"],
-      };
-  }
-  // Nothing at all: spelling corrections, categories and brands from /suggests.
-  const s = await cat.getSuggestions(query);
-  return {
-    status: "no_results",
-    summary: `No Birmarket products found for "${query}".`,
-    items: [linkItem("Search on Birmarket")],
-    suggestions: [
-      ...s.predictedQueries.slice(0, 3).map((w) => ({ label: w, value: w })),
-      ...s.categories.slice(0, 2).map((c) => ({ label: c.name, value: c.name })),
-      ...s.brands.slice(0, 2).map((b) => ({ label: b, value: `only ${b}` })),
-    ].slice(0, 4),
-    need_input: null,
-    refinements: ["different words", "other brands"],
-  };
-}
 
 export const DIRECT_ADAPTERS: Record<string, DirectAdapter> = {
   // Shopping: live Birmarket listing pages for the query (tags / brand) + the background catalog snapshot.
@@ -602,14 +725,6 @@ export const DIRECT_ADAPTERS: Record<string, DirectAdapter> = {
       verify: true,
       action: { label: "Open Birmarket", type: "handoff_url" as const, value: searchUrl },
     });
-    // Primary source: the Birmarket catalog API. The page scraping below runs only when it is down.
-    if (CONFIG.birmarketCatalog.enabled()) {
-      try {
-        return await birmarketCatalogResult(query, slots, linkItem);
-      } catch (e) {
-        console.error("[Catalog] UNAVAILABLE, using Birmarket pages:", (e as Error).message);
-      }
-    }
     const live = CONFIG.birmarketLive()
       ? await birmarketLiveSearch(query).catch(() => ({ products: [] as Product[], urls: [] }))
       : { products: [] as Product[], urls: [] };

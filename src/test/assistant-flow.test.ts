@@ -328,6 +328,9 @@ beforeAll(() => {
         headers: { "content-type": "text/html" },
       });
     }
+    // The Birmarket catalog API is "down" here, so shopping uses the birmarket.az pages / snapshot.
+    if (url.startsWith("https://mp-catalog.umico.az/"))
+      return new Response("down", { status: 503 });
     if (url === "https://birmarket.az/tags/iphone")
       return new Response(IPHONE_TAG_HTML, { headers: { "content-type": "text/html" } });
     if (url.startsWith("https://birmarket.az/")) return new Response("not found", { status: 404 });
@@ -679,7 +682,7 @@ describe("customer demo flow", () => {
     expect(r.ui!.text).toContain("85");
     expect(r.ui!.cards[0]!.price).toEqual({ from: 85, currency: "AZN" });
 
-    // Turn 7: suitcase -> shopping (direct, no Module Agent); travel stays parked.
+    // Turn 7: suitcase -> shopping agent (search_products; catalog down -> Birmarket pages); travel stays parked.
     queue.orchestrator.push(
       json({
         ...D,
@@ -691,6 +694,14 @@ describe("customer demo flow", () => {
         topic_summary: "Needs a suitcase.",
       }),
     );
+    queue.module_agent.push(
+      tool("search_products", { query: "çamadan" }),
+      fromTools(([res]) => ({
+        status: "ok",
+        summary: "Suitcases on Birmarket.",
+        items: (res!["products"] as { ref: string }[]).map((p) => ({ ref: p.ref })),
+      })),
+    );
     queue.responder.push(
       json({ text: "Here are suitcases on Birmarket.", cards: [{ id: "p101" }] }),
     );
@@ -700,7 +711,9 @@ describe("customer demo flow", () => {
     expect(r.ui!.cards[0]!.price).toEqual({ from: 189, currency: "AZN" });
     expect(r.ui!.cards[0]!.action.event.value).toBe("https://birmarket.az/product/101-camadan");
     expect(s.topics.find((x) => x.id === "t1")!.status).toBe("parked");
-    expect(calls.filter((c) => c.role === "module_agent").length).toBe(moduleCalls);
+    expect(calls.filter((c) => c.role === "module_agent").length).toBe(moduleCalls + 2);
+    // The shopping agent sees the user's own words (colour / size the task may leave out).
+    expect(calls.at(-2)!.system).toContain("I also need a suitcase");
     expect(r.ui!.quick_replies.length).toBeGreaterThanOrEqual(2);
   });
 
