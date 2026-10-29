@@ -2,8 +2,7 @@
 // Module Agent (or, for executor: direct, to a ModuleResult) and records the URLs its data came from,
 // so code can check every item's source_url (rule 4).
 import type { ToolConfig } from "../core/registry";
-import type { FilterChip, Item, ModuleResult } from "../core/schemas";
-import { t, tn } from "../core/i18n";
+import type { Item, ModuleResult } from "../core/schemas";
 import type { Session } from "../core/state";
 import { CONFIG, todayISO } from "../config";
 import {
@@ -14,9 +13,12 @@ import {
   type Product,
   type Session as CinemaSession,
 } from "@/lib/bir";
-import { llm, parseJSONObject } from "../core/llm";
+import type {
+  CatalogProduct,
+  CatalogSearchParams,
+  CatalogSort,
+} from "@/lib/birmarket-catalog.server";
 import { searchFlightOptions } from "./flights";
-import { giftPlan, pickGifts, priceBuckets, rangeValue, type PriceRange } from "./gifts";
 import { convert, loadRates } from "./money";
 import { fetchPage, mark, offerItems, type ToolContext, webSearch } from "./web";
 
@@ -153,6 +155,13 @@ export const AGENT_ADAPTERS: Record<string, AgentAdapter> = {
     const movieQ = str(args["movie"]).toLowerCase();
     const langQ = str(args["language"]).toLowerCase().slice(0, 2);
     const nowHHMM = bakuNowHHMM();
+    // "19.00", "19", "7:30" -> "19:00" / "07:30"; empty when not given.
+    const hhmm = (v: unknown) => {
+      const m = str(v).match(/(\d{1,2})(?:[:.](\d{2}))?/);
+      return m && Number(m[1]) < 24 ? `${m[1]!.padStart(2, "0")}:${m[2] ?? "00"}` : "";
+    };
+    const afterQ = hhmm(args["time_after"]);
+    const beforeQ = hhmm(args["time_before"]);
     const failed: string[] = [];
     const perCinema = await mapLimit(slugs, 4, async (slug) => {
       try {
@@ -168,7 +177,9 @@ export const AGENT_ADAPTERS: Record<string, AgentAdapter> = {
       .flat()
       .filter((s) => !movieQ || s.movie.toLowerCase().includes(movieQ))
       .filter((s) => !langQ || (s.language ?? "").toLowerCase().startsWith(langQ))
-      .filter((s) => date !== today || s.time >= nowHHMM);
+      .filter((s) => date !== today || s.time >= nowHHMM)
+      .filter((s) => !afterQ || s.time >= afterQ)
+      .filter((s) => !beforeQ || s.time <= beforeQ);
     const byMovie = new Map<string, (CinemaSession & { slug: string })[]>();
     for (const s of sessions) byMovie.set(s.movie, [...(byMovie.get(s.movie) ?? []), s]);
     const info = movieInfoFor([...byMovie.keys()]);
@@ -321,154 +332,309 @@ const num = (v: string | undefined) => {
   return v && Number.isFinite(n) && n > 0 ? n : null;
 };
 
-/** Price-range chips for a product list: ranges from the found prices; the applied one is marked active. */
-export function priceFilters(
-  prices: number[],
-  min: number | null,
-  max: number | null,
-  language: string,
-): FilterChip[] {
-  const label = (r: PriceRange) =>
-    r.min == null
-      ? tn("price_under", language, r.max!)
-      : r.max == null
-        ? tn("price_over", language, r.min)
-        : `${r.min}–${r.max} ₼`;
-  const chip = (r: PriceRange, active: boolean): FilterChip => ({
-    label: r.min == null && r.max == null ? t("price_any", language) : label(r),
-    event: { type: "select", slot: "price_range", value: rangeValue(r) },
-    active,
-  });
-  const ranges = priceBuckets(prices);
-  const chips = ranges.map((r) => chip(r, r.min === min && r.max === max));
-  const filtered = min != null || max != null;
-  // A range the user typed ("under 80 manat") that is not one of the buckets is still shown as applied.
-  if (filtered && !chips.some((c) => c.active)) chips.unshift(chip({ min, max }, true));
-  if (filtered) chips.unshift(chip({ min: null, max: null }, false));
-  return chips;
-}
+const CATALOG_SORTS: [RegExp, CatalogSort][] = [
+  [/cheap|price_asc|ucuz|дешев/i, "price_asc"],
+  [/expensive|price_desc|baha|дорог/i, "price_desc"],
+  [/rat|reyting|рейтинг/i, "rating"],
+  [/popular|bestsell|populyar|популяр/i, "popularity"],
+];
+const BESTSELLER_RX =
+  /^(ən çox satılan|en cox satilan|bestseller|populyar|хиты? продаж|популярн\S*)( məhsul\S*| товар\S*)?$/i;
 
-// Model-picked Birmarket categories per query, for product words no category name matches ("gəzinti üçün şey").
-const aiCategoryCache = new Map<string, string[]>();
-async function aiBirmarketCategories(query: string, candidates: { slug: string; name: string }[]): Promise<string[]> {
-  if (!CONFIG.azure.apiKey() || !query.trim()) return [];
-  const key = query.trim().toLowerCase();
-  const hit = aiCategoryCache.get(key);
-  if (hit) return hit;
-  const { birmarketCategoryChoices } = await import("@/lib/scrapers.server");
-  const choices = [...new Map([...candidates, ...birmarketCategoryChoices()].map((c) => [c.slug, c])).values()];
-  try {
-    const out = await llm(
-      "orchestrator",
-      [
-        {
-          role: "system",
-          content:
-            'Pick the Birmarket.az categories where the product would be listed. Reply with ONLY JSON {"slugs":["..."]}: ' +
-            "1-2 slugs from the list, most specific first, or [] if none fits.",
-        },
-        { role: "user", content: `Product: ${query}\nCategories (slug: name):\n${choices.map((c) => `${c.slug}: ${c.name}`).join("\n")}` },
-      ],
-      { json: true },
-    );
-    const valid = new Set(choices.map((c) => c.slug));
-    const slugs = ((parseJSONObject(out.content) as { slugs?: unknown }).slugs ?? []) as unknown[];
-    const picked = slugs.filter((s): s is string => typeof s === "string" && valid.has(s)).slice(0, 2);
-    aiCategoryCache.set(key, picked);
-    return picked;
-  } catch (e) {
-    console.error("birmarket category pick failed", e);
-    return [];
+const catalogItem = (p: CatalogProduct): Item => ({
+  id: `p${p.id}`,
+  kind: "product",
+  title: p.title,
+  subtitle: p.originalPrice ? `was ${p.originalPrice} AZN` : "",
+  attributes: {
+    ...(p.imageUrl ? { image: p.imageUrl } : {}),
+    ...(p.rating != null ? { rating: p.rating, reviews: p.reviewCount ?? 0 } : {}),
+    ...(p.originalPrice ? { old_price_azn: p.originalPrice } : {}),
+  },
+  price: { amount: p.price || null, currency: p.price ? "AZN" : null },
+  source_url: p.url,
+  verify: false,
+  action: { label: "View on Birmarket", type: "handoff_url", value: p.url },
+});
+
+/**
+ * Shopping on the Birmarket catalog API (the Birmarket shopping assistant's search logic): category anchoring,
+ * brand / sort / discount filters, out-of-budget alternatives and /suggests recovery. Throws when the API is
+ * unavailable so the caller can fall back to the listing pages.
+ */
+async function birmarketCatalogResult(
+  query: string,
+  slots: Record<string, string>,
+  linkItem: (title: string) => Item,
+): Promise<ModuleResult> {
+  const cat = await import("@/lib/birmarket-catalog.server");
+  const inStock = (ps: CatalogProduct[]) => ps.filter((p) => p.availability !== "out_of_stock");
+  if (BESTSELLER_RX.test(query.trim())) {
+    const best = inStock(await cat.getBestsellers(6));
+    if (best.length)
+      return {
+        status: "ok",
+        summary: "Birmarket bestsellers right now (all categories).",
+        items: best.map(catalogItem),
+        suggestions: [],
+        need_input: null,
+        refinements: [],
+      };
   }
+  const min = num(slots["budget_min"]),
+    max = num(slots["budget_max"]);
+  const brand = (slots["brand"] ?? "").trim() || undefined;
+  const sort = CATALOG_SORTS.find(([rx]) => rx.test(slots["sort"] ?? ""))?.[1];
+  const withDiscount = /^(true|yes|1)$/i.test((slots["discount_only"] ?? "").trim());
+  const inferred = cat.inferCategory(query);
+  const base: CatalogSearchParams = {
+    query: inferred?.query ?? query,
+    ...(inferred ? { categoryId: inferred.categoryId, fullQuery: query } : {}),
+    brand,
+    sort,
+    withDiscount,
+  };
+  const range = `${min ? ` from ${min} AZN` : ""}${max ? ` up to ${max} AZN` : ""}`;
+  const r = await cat.searchCatalog({ ...base, priceMin: min, priceMax: max });
+  const found = inStock(r.products);
+  if (found.length) {
+    return {
+      status: "ok",
+      summary:
+        `${found.length} Birmarket products for "${query}"${range}${withDiscount ? ", discounted only" : ""}.` +
+        (r.brandDropped
+          ? ` Nothing from ${r.brandDropped} matched, so other brands are shown.`
+          : ""),
+      items: found.slice(0, 6).map(catalogItem),
+      suggestions: cat.refinementChips(found, {
+        brand: r.brandDropped ? undefined : brand,
+        priceMin: min,
+        priceMax: max,
+        sort,
+        query,
+      }),
+      need_input: null,
+      refinements: [],
+    };
+  }
+  // Nothing within the budget: show the closest products outside it instead of a dead end.
+  if (min || max) {
+    const wide = inStock((await cat.searchCatalog(base)).products).sort((a, b) =>
+      max ? a.price - b.price : b.price - a.price,
+    );
+    if (wide.length)
+      return {
+        status: "partial",
+        summary: `Nothing for "${query}"${range}; these are the closest prices.`,
+        items: wide.slice(0, 6).map(catalogItem),
+        suggestions: [],
+        need_input: null,
+        refinements: ["other brands"],
+      };
+  }
+  // Nothing at all: spelling corrections, categories and brands from /suggests.
+  const s = await cat.getSuggestions(query);
+  return {
+    status: "no_results",
+    summary: `No Birmarket products found for "${query}".`,
+    items: [linkItem("Search on Birmarket")],
+    suggestions: [
+      ...s.predictedQueries.slice(0, 3).map((w) => ({ label: w, value: w })),
+      ...s.categories.slice(0, 2).map((c) => ({ label: c.name, value: c.name })),
+      ...s.brands.slice(0, 2).map((b) => ({ label: b, value: `only ${b}` })),
+    ].slice(0, 4),
+    need_input: null,
+    refinements: ["different words", "other brands"],
+  };
 }
 
 export const DIRECT_ADAPTERS: Record<string, DirectAdapter> = {
   // Shopping: live Birmarket listing pages for the query (tags / brand) + the background catalog snapshot.
-  // Gift requests without a product ("a present for my mom") get a varied mix of gift ideas for that recipient.
-  // Every result carries price-range filter chips. Used until the shopping assistant endpoint exists.
-  birmarket_v1: async ({ query, slots, language }) => {
+  // Used until the shopping assistant endpoint exists.
+  birmarket_v1: async ({ query, slots }) => {
     const {
       getBirmarketProducts,
       searchProducts,
       warmUp,
       birmarketLiveSearch,
-      birmarketCategoryMatch,
-      birmarketCategoryProducts,
+      birmarketGiftIdeas,
+      GIFT_RX,
+      isGiftRecipient,
     } = await import("@/lib/scrapers.server");
     warmUp();
-    const gift = giftPlan(query, slots["recipient"] ?? "");
-    // "hədiyyə ətir" = a perfume as a gift: search the product words; a bare gift request uses gift ideas.
-    const productQuery = gift ? gift.rest.join(" ") : query;
-    const giftMode = !!gift && !productQuery;
-    const searchUrl = birmarketSearchUrl(giftMode ? "hədiyyə" : productQuery);
+    // Gift without a product ("something for my mom's birthday"): best-rated products from categories that suit
+    // the person, read live. A named product ("perfume for mom") keeps the normal search below.
+    const forWhom = slots["gift_for"] ?? "";
+    // Words left after removing gift / person / filler words: none -> nothing concrete was asked for.
+    const FILLER = new Set([
+      // en
+      "gift",
+      "gifts",
+      "present",
+      "idea",
+      "ideas",
+      "for",
+      "my",
+      "me",
+      "i",
+      "im",
+      "wanna",
+      "want",
+      "would",
+      "like",
+      "to",
+      "buy",
+      "get",
+      "need",
+      "some",
+      "smth",
+      "sth",
+      "something",
+      "anything",
+      "a",
+      "an",
+      "the",
+      "birthday",
+      "please",
+      "what",
+      "should",
+      "can",
+      "you",
+      "suggest",
+      "her",
+      "him",
+      "mom",
+      "mother",
+      "mum",
+      "dad",
+      "father",
+      "wife",
+      "husband",
+      "sister",
+      "brother",
+      "friend",
+      "s",
+      // az
+      "üçün",
+      "ucun",
+      "ana",
+      "anam",
+      "anama",
+      "anamın",
+      "ata",
+      "atam",
+      "atama",
+      "ad",
+      "günü",
+      "gunu",
+      "bir",
+      "şey",
+      "sey",
+      "nəsə",
+      "nese",
+      "hədiyyə",
+      "hediyye",
+      "almaq",
+      "istəyirəm",
+      "isteyirem",
+      "mənə",
+      "mene",
+      "lazımdır",
+      "lazimdir",
+      // ru
+      "подарок",
+      "для",
+      "мамы",
+      "маме",
+      "мама",
+      "папы",
+      "папе",
+      "хочу",
+      "купить",
+      "что",
+      "то",
+      "нибудь",
+    ]);
+    const productWords = query
+      .toLowerCase()
+      .split(/[^\p{L}\p{N}]+/u)
+      .filter((w) => w && !FILLER.has(w) && !GIFT_RX.test(w))
+      .join(" ");
+    if ((forWhom || GIFT_RX.test(query) || isGiftRecipient(query)) && productWords.length < 3) {
+      const maxGift = num(slots["budget_max"]);
+      const minGift = num(slots["budget_min"]);
+      const gift = await birmarketGiftIdeas(forWhom || query, maxGift, 6, minGift);
+      if (gift.products.length) {
+        return {
+          status: "ok",
+          summary: `Gift ideas from Birmarket${forWhom ? ` for ${forWhom}` : ""}: best-rated in ${gift.categories.map((c) => c.label).join(", ")}${minGift ? `, from ${minGift} AZN` : ""}${maxGift ? `, up to ${maxGift} AZN` : ""}.`,
+          items: gift.products.map((p) => ({
+            id: `p${p.id}`,
+            kind: "product",
+            title: p.name,
+            subtitle: p.old_price ? `was ${p.old_price} AZN` : "",
+            attributes: {
+              ...(p.image_url ? { image: p.image_url } : {}),
+              ...(p.rating != null ? { rating: p.rating, reviews: p.reviews } : {}),
+              ...(p.old_price ? { old_price_azn: p.old_price } : {}),
+            },
+            price: { amount: p.price_azn, currency: "AZN" },
+            source_url: p.url,
+            verify: false,
+            action: { label: "View on Birmarket", type: "handoff_url" as const, value: p.url },
+          })),
+          // Chips to narrow down: one per category shown.
+          suggestions: gift.categories.map((c) => ({ label: c.label, value: c.refine })),
+          need_input: null,
+          refinements: ["cheaper gifts", "other ideas"],
+        };
+      }
+    }
+    const searchUrl = birmarketSearchUrl(query);
     const linkItem = (title: string) => ({
       id: "search",
       kind: "product",
       title,
-      subtitle: giftMode ? "" : productQuery,
+      subtitle: query,
       attributes: {},
       price: { amount: null, currency: null },
       source_url: searchUrl,
       verify: true,
       action: { label: "Open Birmarket", type: "handoff_url" as const, value: searchUrl },
     });
-    const snapshot = getBirmarketProducts() ?? [];
-    // Live pages for this request, read in parallel: the product's own category listing (matched by name,
-    // or picked by the model when no name matches), plus tag / brand pages for model names. This works
-    // without the background snapshot, so a cold start still returns real products.
-    let categorySlugs: string[] = [];
-    const ideaQueries = giftMode ? gift.ideas.map((i) => i.phrases[0]?.join(" ") ?? "").filter(Boolean) : [];
-    if (CONFIG.birmarketLive()) {
-      if (giftMode) {
-        const pick = (q: string) => {
-          const m = birmarketCategoryMatch(q);
-          return (m.confident[0] ?? m.candidates[0])?.slug;
-        };
-        categorySlugs = [...new Set(ideaQueries.map(pick).filter((s): s is string => !!s))].slice(0, 6);
-      } else {
-        // A category whose whole name matches is used directly; otherwise the model picks (cached per query).
-        const m = birmarketCategoryMatch(productQuery);
-        categorySlugs = m.confident.map((c) => c.slug);
-        if (!categorySlugs.length) categorySlugs = await aiBirmarketCategories(productQuery, m.candidates);
-        if (!categorySlugs.length) categorySlugs = m.candidates.slice(0, 1).map((c) => c.slug);
+    // Primary source: the Birmarket catalog API. The page scraping below runs only when it is down.
+    if (CONFIG.birmarketCatalog.enabled()) {
+      try {
+        return await birmarketCatalogResult(query, slots, linkItem);
+      } catch (e) {
+        console.error("[Catalog] UNAVAILABLE, using Birmarket pages:", (e as Error).message);
       }
     }
-    const noLive = { products: [] as Product[], urls: [] as string[] };
-    const [live, fromCategories] = await Promise.all([
-      CONFIG.birmarketLive() && !giftMode ? birmarketLiveSearch(productQuery).catch(() => noLive) : noLive,
-      categorySlugs.length ? birmarketCategoryProducts(categorySlugs).catch(() => [] as Product[]) : [],
-    ]);
+    const live = CONFIG.birmarketLive()
+      ? await birmarketLiveSearch(query).catch(() => ({ products: [] as Product[], urls: [] }))
+      : { products: [] as Product[], urls: [] };
+    const snapshot = getBirmarketProducts() ?? [];
     // Live listing data first: fresher prices win when a product is in both.
-    const all = [
-      ...new Map([...snapshot, ...fromCategories, ...live.products].map((p) => [p.id, p])).values(),
-    ];
+    const all = [...new Map([...snapshot, ...live.products].map((p) => [p.id, p])).values()];
     if (!all.length) {
       return {
-        status: "no_results",
-        summary: `No Birmarket products found for "${giftMode ? "gift" : productQuery}".`,
+        status: "partial",
+        summary: "The Birmarket catalog is still loading; only a search link is available.",
         items: [linkItem("Search on Birmarket")],
         suggestions: [],
         need_input: null,
-        refinements: ["different words"],
+        refinements: ["search again"],
       };
     }
     const min = num(slots["budget_min"]),
       max = num(slots["budget_max"]);
-    const range =
-      min != null && max != null
-        ? ` between ${min} and ${max} AZN`
-        : max != null
-          ? ` up to ${max} AZN`
-          : min != null
-            ? ` from ${min} AZN`
-            : "";
-    const toItem = (p: Product, idea?: string) => ({
+    const found = searchProducts(all, query, min, max);
+    const toItem = (p: Product) => ({
       id: `p${p.id}`,
       kind: "product",
       title: p.name,
       subtitle: p.old_price ? `was ${p.old_price} AZN` : "",
       attributes: {
-        ...(idea ? { gift_idea: idea } : {}),
         ...(p.image_url ? { image: p.image_url } : {}),
         ...(p.rating != null ? { rating: p.rating, reviews: p.reviews } : {}),
         ...(p.old_price ? { old_price_azn: p.old_price } : {}),
@@ -478,82 +644,33 @@ export const DIRECT_ADAPTERS: Record<string, DirectAdapter> = {
       verify: false,
       action: { label: "View on Birmarket", type: "handoff_url" as const, value: p.url },
     });
-
-    if (giftMode) {
-      const who = gift.recipient || "someone";
-      const g = pickGifts(all, gift, min, max);
-      const filters = priceFilters(g.prices, min, max, language);
-      if (g.picks.length) {
-        return {
-          status: "ok",
-          summary: `Gift ideas for ${who} from Birmarket${range}: ${g.ideasFound.join(", ").toLowerCase()}.`,
-          items: g.picks.map((x) => toItem(x.product, x.idea)),
-          suggestions: [],
-          need_input: null,
-          refinements: g.ideasFound.slice(0, 3).map((i) => `more ${i.toLowerCase()} for ${who}`),
-          filters,
-        };
-      }
-      return {
-        status: "no_results",
-        summary: `No Birmarket gift ideas for ${who}${range}.`,
-        items: [linkItem("Search gifts on Birmarket")],
-        suggestions: [],
-        need_input: null,
-        refinements: range ? ["any price"] : ["different gift idea"],
-        filters,
-      };
-    }
-
-    let found = searchProducts(all, productQuery, min, max);
-    // The product's category listing is relevant even when names use other words ("Səyahət çantası" for
-    // çamadan): rank those by the remaining words (colour, size), then rating, within the budget.
-    if (!found.products.length && !found.alternatives.length && fromCategories.length) {
-      const extra = productQuery.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
-      const score = (p: Product) =>
-        extra.filter((w) => p.name.toLowerCase().includes(w)).length * 10 +
-        (p.rating ?? 0) * Math.log10(10 + (p.reviews ?? 0));
-      const inCats = [...new Map(fromCategories.map((p) => [p.id, p])).values()].filter((p) => p.price_azn != null);
-      const inRange = inCats.filter(
-        (p) => (min == null || p.price_azn! >= min) && (max == null || p.price_azn! <= max),
-      );
-      found = {
-        products: inRange.sort((a, b) => score(b) - score(a)).slice(0, 6),
-        alternatives: [],
-        prices: inCats.map((p) => p.price_azn!),
-      };
-    }
-    const filters = priceFilters(found.prices, min, max, language);
     if (found.products.length) {
       return {
         status: "ok",
-        summary: `${found.products.length} Birmarket products for "${productQuery}"${range}.`,
-        items: found.products.slice(0, 6).map((p) => toItem(p)),
+        summary: `${found.products.length} Birmarket products for "${query}"${max ? ` up to ${max} AZN` : ""}.`,
+        items: found.products.slice(0, 6).map(toItem),
         suggestions: [],
         need_input: null,
         refinements: found.alternatives.length ? ["cheaper options"] : [],
-        filters,
       };
     }
     if (found.alternatives.length) {
       return {
         status: "partial",
-        summary: `Nothing for "${productQuery}" in the price range; these are cheaper alternatives.`,
-        items: found.alternatives.slice(0, 6).map((p) => toItem(p)),
+        summary: `Nothing for "${query}" in the price range; these are cheaper alternatives.`,
+        items: found.alternatives.slice(0, 6).map(toItem),
         suggestions: [],
         need_input: null,
         refinements: ["other brands"],
-        filters,
       };
     }
     return {
       status: "no_results",
-      summary: `No Birmarket products found for "${productQuery}"${range}.`,
+      summary: `No Birmarket products found for "${query}".`,
       items: [linkItem("Search on Birmarket")],
       suggestions: [],
       need_input: null,
       refinements: ["different words", "other brands"],
-      ...(found.prices.length ? { filters } : {}),
     };
   },
 };

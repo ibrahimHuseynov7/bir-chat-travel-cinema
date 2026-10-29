@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Clapperboard, Plane, ShoppingBag, Plus, MessageCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { BirLogo } from "@/components/bir-logo";
 import { AssistantReply } from "@/components/assistant-cards";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { assistantModules, assistantTurn } from "@/lib/chat.functions";
 import type { Route as LogoCell } from "@/lib/bir";
 import type { UI, UIEvent } from "@/lib/assistant/core/schemas";
@@ -131,14 +133,15 @@ function Index() {
         data: { state, ...req, user: { language: lang, citizenship: "AZ", home_city: "Baku" } },
       });
       setState(res.state);
-      if (res.ui)
+      const ui = res.ui;
+      if (ui)
         setMessages((m) => [
           ...m,
           {
             id: Date.now() + 1,
             role: "assistant",
-            text: res.ui!.text,
-            ui: res.ui!,
+            text: ui.text,
+            ui,
             module: res.meta.module,
           },
         ]);
@@ -172,51 +175,71 @@ function Index() {
   };
 
   return (
-    <div className="flex h-dvh flex-col bg-background">
-      <header className="border-b-2 border-foreground">
-        <div className="mx-auto flex max-w-[820px] items-center gap-2 px-4 py-3">
-          <button onClick={reset} className="flex items-center gap-2">
+    <div className="flex h-dvh bg-background">
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-muted p-5 lg:flex">
+        <div className="mb-10 flex items-center gap-3 text-primary">
+          <BirLogo className="h-10 w-6" />
+          <span className="font-display text-lg">bir chat</span>
+        </div>
+        <Button variant="outline" onClick={reset} className="justify-start bg-background"><Plus />{t.newChat}</Button>
+        <nav className="mt-8 flex flex-col gap-2" aria-label="Chat topics">
+          {modules.map((m) => {
+            const Icon = m.id === "cinema" ? Clapperboard : m.id === "shopping_assistant" ? ShoppingBag : Plane;
+            return <Button key={m.id} variant="ghost" disabled={waiting} onClick={() => sendEvent({ type: "select", slot: "module", value: m.display_name }, m.display_name)} className="h-auto min-h-10 justify-start whitespace-normal text-left text-muted-foreground"><Icon />{m.display_name}</Button>;
+          })}
+        </nav>
+        <div className="mt-auto flex items-center gap-2 border-t border-border pt-4 text-xs text-muted-foreground"><MessageCircle className="size-4" />Bir Chat</div>
+      </aside>
+      <div className="flex min-w-0 flex-1 flex-col">
+      <header className="border-b border-border">
+        <div className="mx-auto flex max-w-[900px] items-center gap-2 px-4 py-4 sm:px-8">
+          <Button variant="ghost" onClick={reset} className="h-auto gap-2 p-0 hover:bg-transparent">
             <BirLogo
               active={activeModule ? (LOGO[activeModule] ?? null) : null}
               className="h-[34px] w-[21px]"
             />
-            <span className="font-display text-xl">bir chat</span>
-          </button>
+            <span className="font-display text-base">bir chat</span>
+          </Button>
           <select
             aria-label="Language"
             value={lang}
             onChange={(e) => setLang(e.target.value as Lang)}
-            className="pill ml-auto bg-background px-3 py-1 text-sm"
+            className="ml-auto h-9 rounded-lg border border-border bg-background px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <option value="az">AZ</option>
             <option value="ru">RU</option>
             <option value="en">EN</option>
           </select>
+          <ThemeToggle />
         </div>
       </header>
 
       <main className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto flex max-w-[820px] flex-col gap-5 px-4 py-6">
+        <div className="mx-auto flex max-w-[900px] flex-col gap-6 px-4 py-6 sm:px-8">
           {!messages.length && (
-            <div className="flex flex-col items-center gap-5 py-16 text-center">
-              <BirLogo className="h-[128px] w-[80px]" />
-              <h1 className="font-display max-w-md text-3xl sm:text-4xl">{t.title}</h1>
-              <p className="text-muted-foreground">{t.sub}</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {modules.map((m) => (
-                  <button
+            <div className="flex flex-col items-center gap-5 pb-8 pt-10 text-center sm:pt-20">
+              <BirLogo className="h-[80px] w-[50px] text-primary" />
+              <h1 className="font-display mt-2 text-3xl text-primary sm:text-4xl">bir chat</h1>
+              <p className="max-w-md text-xl font-medium leading-relaxed sm:text-2xl">{t.title}</p>
+              <div className="mt-6 grid w-full grid-cols-1 gap-3 sm:grid-cols-3">
+                {modules.map((m) => {
+                  const Icon = m.id === "cinema" ? Clapperboard : m.id === "shopping_assistant" ? ShoppingBag : Plane;
+                  return <Button
+                    variant="outline"
                     key={m.id}
+                    disabled={waiting}
                     onClick={() =>
                       sendEvent(
                         { type: "select", slot: "module", value: m.display_name },
                         m.display_name,
                       )
                     }
-                    className="pill px-4 py-2 text-sm hover:bg-primary hover:text-primary-foreground transition"
+                    className="group h-auto min-h-28 flex-col items-start justify-between gap-4 whitespace-normal rounded-lg border-border p-4 text-left sm:min-h-36"
                   >
-                    {m.display_name}
-                  </button>
-                ))}
+                    <Icon className="text-primary" />
+                    <span className="flex w-full items-center justify-between gap-2"><span>{m.display_name}</span><ArrowUpRight className="shrink-0 text-muted-foreground" /></span>
+                  </Button>;
+                })}
               </div>
             </div>
           )}
@@ -245,7 +268,6 @@ function Index() {
                     onEvent={sendEvent}
                     onTypeOwn={() => inputRef.current?.focus()}
                     live={m.ui === lastUi && !waiting}
-                    lang={lang}
                   />
                 )}
               </div>
@@ -272,7 +294,7 @@ function Index() {
           {failed && (
             <div role="alert" className="flex items-center gap-3 text-sm text-destructive">
               {t.error}
-              <button
+              <Button variant="link"
                 onClick={() => {
                   const f = failed;
                   setMessages((m) => m.slice(0, -1));
@@ -284,7 +306,7 @@ function Index() {
                 className="underline"
               >
                 {t.retry}
-              </button>
+              </Button>
             </div>
           )}
           <div ref={endRef} />
@@ -296,10 +318,10 @@ function Index() {
           e.preventDefault();
           sendText(input);
         }}
-        className="px-4 pb-4 pt-2"
+        className="px-4 pb-5 pt-3 sm:px-8"
       >
-        <div className="mx-auto max-w-[820px]">
-          <div className="pill flex items-center gap-2 py-1.5 pl-5 pr-1.5">
+        <div className="mx-auto max-w-[836px]">
+          <div className="flex items-center gap-3 rounded-xl border border-border bg-card py-3 pl-4 pr-3 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary">
             <input
               ref={inputRef}
               value={input}
@@ -309,21 +331,22 @@ function Index() {
               placeholder={lastUi?.input_hint || t.hint}
               className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             />
-            <button
+             <Button size="icon" type="submit"
               aria-label="Send"
               disabled={waiting || !input.trim()}
-              className="grid size-9 place-items-center rounded-full bg-primary text-primary-foreground disabled:opacity-40"
+               className="size-10 shrink-0 rounded-lg"
             >
               <ArrowUp className="size-4" />
-            </button>
+             </Button>
           </div>
-          <div className="mt-1.5 text-right">
-            <button type="button" onClick={reset} className="text-xs underline">
-              {t.newChat}
-            </button>
+          <div className="mt-2 flex justify-end">
+            <Button variant="ghost" size="sm" type="button" onClick={reset} className="text-xs text-muted-foreground">
+              <Plus className="size-3" />{t.newChat}
+            </Button>
           </div>
         </div>
       </form>
+      </div>
     </div>
   );
 }

@@ -1,0 +1,13 @@
+{
+  "source": "bir-chat-v2_2_1.zip",
+  "capabilities": [
+    {"capability":"code and routes","source":"uploaded archive and existing imported app","outcome":"presentation updated and verified; existing assistant logic intentionally retained","status":"verified","next_action":null},
+    {"capability":"schema, records, auth identities and authorization","source":"archive inspection","outcome":"no database or account migration detected","status":"not_applicable","next_action":null},
+    {"capability":"uploaded file bytes","source":"archive inspection","outcome":"current logo and existing result imagery retained","status":"verified","next_action":null},
+    {"capability":"external providers and secrets","source":"existing assistant configuration","outcome":"required secrets configured; actual Azure chat reply verified; flight and web search integrations unchanged","status":"partially_verified","next_action":"Live flight and web search checks required only for full migration verification"},
+    {"capability":"public endpoints, callbacks, webhooks and schedules","source":"archive investigation","outcome":"existing server/chat wiring retained; no cutover made","status":"unchanged","next_action":null},
+    {"capability":"cutover","source":"user request","outcome":"preview update only; publishing not requested in this message","status":"not_applicable","next_action":null},
+    {"capability":"verification","source":"preview and tests","outcome":"15 tests passed; automatic build OK; theme persistence and mobile layout checked; actual chat response with no page errors","status":"verified","next_action":null},
+    {"capability":"archive-only gift filtering UI and assistant behavior differences","source":"archive comparison","outcome":"outside presentation-only scope; do not overwrite finished engine with older/different archive logic","status":"deferred","next_action":"Separate user request required to replace assistant behavior or add archive-only filters"}
+  ]
+}

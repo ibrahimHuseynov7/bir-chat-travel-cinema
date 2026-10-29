@@ -63,17 +63,6 @@ export const ItemSchema = z.object({
 });
 export type Item = z.infer<typeof ItemSchema>;
 
-/**
- * Filter chips shown under the cards (e.g. price ranges for products). Built in code by the module, never by a
- * model; a tap sends `event` back like any other chip. `active` marks the filter currently applied.
- */
-export const FilterChipSchema = z.object({
-  label: str,
-  event: EventSchema,
-  active: z.boolean().default(false),
-});
-export type FilterChip = z.infer<typeof FilterChipSchema>;
-
 export const ModuleResultSchema = z.object({
   status: z.enum(["ok", "partial", "no_results", "need_input", "error"]),
   summary: str.default(""),
@@ -84,7 +73,6 @@ export const ModuleResultSchema = z.object({
     .nullable()
     .default(null),
   refinements: z.array(str).default([]),
-  filters: z.array(FilterChipSchema).optional(),
 });
 export type ModuleResult = z.infer<typeof ModuleResultSchema>;
 
@@ -122,7 +110,6 @@ export const UISchema = z.object({
   cards: z.array(CardSchema).default([]),
   quick_replies: z.array(QuickReplySchema).default([]),
   input_hint: str.optional().default(""),
-  filters: z.array(FilterChipSchema).optional(),
 });
 export type UI = z.infer<typeof UISchema>;
 export const ResponderUISchema = z.object({

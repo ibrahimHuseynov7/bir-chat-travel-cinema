@@ -108,11 +108,9 @@ export default `
     - {name: city, default: profile.home_city}
     - {name: genre, example_options: [Comedy, Action, Family, Drama]}
     - {name: language}
-    - name: cinema
-      ask: "Which cinema do you want to go to?"
-      hint: "cinema / mall name, e.g. 28 Mall, Ganjlik Mall"
-      example_options: [Any cinema]
-      choose_first: cinema_list
+    - {name: cinema, hint: "cinema / mall name, e.g. 28 Mall, Ganjlik Mall"}
+    - {name: time_after, hint: "HH:MM; the user wants sessions after this time, e.g. 'after 19.00' / 'evening after 7' -> 19:00"}
+    - {name: time_before, hint: "HH:MM; the user wants sessions before this time"}
   max_tool_calls: 3
   tools:
     - name: cinema_sessions
@@ -127,6 +125,8 @@ export default `
           city: {type: string, description: "Baku, Ganja, Sumgayit or Shamakhi; default Baku"}
           movie: {type: string, description: "optional part of a movie title"}
           language: {type: string, description: "optional: Aze, Rus, Eng or Tur"}
+          time_after: {type: string, description: "HH:MM; only sessions starting at or after this time, e.g. 'after 19.00' -> 19:00"}
+          time_before: {type: string, description: "HH:MM; only sessions starting at or before this time"}
         required: [date]
       adapter: cinemaplus_v1
     - name: cinema_list
@@ -138,9 +138,9 @@ export default `
       adapter: cinemaplus_list_v1
   module_instructions: |
     - Only today and tomorrow exist on the cinema site; for other dates return status "need_input" with options Tonight / Tomorrow.
-    - The user asks which cinemas / malls there are, or wants to pick one: call cinema_list and return all its refs (kind "cinema").
-    - A cinema or mall is named (slots.cinema): pass it in cinemas. slots.cinema "Any cinema": leave cinemas empty (all cinemas in the city).
-    - Otherwise call cinema_sessions and return movie refs (max 6), most sessions first, or matching genre / topic_summary first.
+    - Cinema first: when slots.cinema is empty (the user has not named or picked a cinema / mall yet), call ONLY cinema_list (city = slots.city) and return ALL its refs (kind "cinema") so the user picks one. Do not call cinema_sessions in that step. Summary: ask which cinema they want.
+    - A cinema or mall is named or picked (slots.cinema): call cinema_sessions with it in cinemas and return movie refs (max 6), most sessions first, or matching genre / topic_summary first.
+    - Time wishes (slots.time_after / slots.time_before, or "after 19.00" in the task): ALWAYS pass them to cinema_sessions as time_after / time_before; never return a movie that has no session in that window.
     - "Suggest a movie": use genre and topic_summary; prefer movies that are actually playing.
   result_kinds: [movie, cinema]
 
@@ -150,22 +150,25 @@ export default `
   version: 2
   owner: bir-chat
   executor: direct
-  description: Finds and compares products in the Birmarket marketplace catalogue.
-  use_when: [buy, product, price of an item, compare products, gift ideas, "present for my mom", "gift for my dad / wife / kid", birthday present, phone, iphone, laptop]
+  description: Finds and compares products in the Birmarket marketplace catalogue (filters by brand, budget, discounts; sorts by price, rating or popularity; bestsellers).
+  use_when: [buy, product, price of an item, compare products, gift ideas, present for someone, birthday gift, phone, iphone, laptop, bestsellers, discounts on Birmarket]
   not_when: [travel or cinema tickets]
   max_cards: 6
   required_slots:
     - name: query
       ask: "What are you looking for?"
       example_options: [Smartphone, Headphones, Gift ideas]
-      hint: "Azerbaijani product-type word + brand + model exactly as the user said it. Keep model names and numbers. Examples: iphone -> 'smartfon apple iphone'; iphone 16 pro -> 'smartfon apple iphone 16 pro'; samsung phone -> 'smartfon samsung'; headphones -> qulaqlıq; airpods -> 'qulaqlıq apple airpods'; laptop -> noutbuk; macbook -> 'noutbuk apple macbook'; suitcase -> çamadan; ball -> top; toy -> oyuncaq; a gift / present with no product named -> 'hədiyyə' (who it is for goes in recipient); a gift with a product named ('perfume for mom') -> the product words only, e.g. ətir"
+      hint: "Azerbaijani product-type word + brand + model exactly as the user said it. Keep model names and numbers. Examples: iphone -> 'smartfon apple iphone'; iphone 16 pro -> 'smartfon apple iphone 16 pro'; samsung phone -> 'smartfon samsung'; headphones -> qulaqlıq; airpods -> 'qulaqlıq apple airpods'; laptop -> noutbuk; macbook -> 'noutbuk apple macbook'; smart watch -> 'ağıllı saat'; men's watch -> 'kişi qol saatı'; women's sneakers -> 'qadın krosovka'; perfume -> ətir; suitcase -> çamadan; ball -> top; toy -> oyuncaq; bestsellers / what is popular (no product named) -> 'ən çox satılan'. Reactions like 'I don't like these' are not product words: keep the previous query. A gift with no product named (something for my moms birthday) -> 'hədiyyə' and fill gift_for; a gift with a product (perfume for mom) -> the product words (ətir) and fill gift_for"
   optional_slots:
-    - {name: recipient, hint: "who a gift is for, as the user said it, e.g. mom, dad, wife, son, friend"}
     - {name: budget_min, hint: "number in AZN"}
     - {name: budget_max, hint: "number in AZN"}
+    - {name: gift_for, hint: "who the gift is for, in English: mom, dad, wife, husband, child, friend, colleague"}
+    - {name: brand, hint: "brand of the product being BOUGHT, only when the user asks for one (e.g. 'only Samsung' -> Samsung); never the brand of a device the user owns ('case for my iPhone' has no brand). Clear it when the user asks for other brands"}
+    - {name: sort, hint: "only when asked in the current message: cheapest, most_expensive, top_rated or popular"}
+    - {name: discount_only, hint: "true when the user wants discounted / on-sale items only"}
   tools:
     - name: birmarket_catalog
-      description: Birmarket listing pages for the query (live) plus the catalog snapshot (refreshed in the background).
+      description: Birmarket MP Catalog API search (category anchoring, brand / price / discount filters, sorting, bestsellers); Birmarket listing pages are the fallback when the API is down.
       input_schema: {type: object, properties: {query: {type: string}}, required: [query]}
       adapter: birmarket_v1
   result_kinds: [product]

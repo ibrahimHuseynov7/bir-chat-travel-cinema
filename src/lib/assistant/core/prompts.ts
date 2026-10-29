@@ -74,8 +74,10 @@ User (flights were shown): "anything earlier?"
 -> {"decision":"route","module":"travel_planner","slots":{...,"constraints":"depart earlier than the flights shown"},"task":"Show flights departing earlier than the earliest one shown.", ...}
 User: "iphone 16 under 2000 manat"
 -> {"decision":"route","module":"shopping_assistant","slots":{"query":"smartfon apple iphone 16","budget_max":"2000"},"task":"Find iPhone 16 smartphones up to 2000 AZN.", ...}
-User: "I want to buy a present for my mom"
--> {"decision":"route","module":"shopping_assistant","topic_change":true,"slots":{"query":"hədiyyə","recipient":"mom"},"task":"Find gift ideas for the user's mom.", ...}`;
+User (gift ideas for mom were shown): "I want it to start from 50 azn"
+-> {"decision":"route","module":"shopping_assistant","topic_change":false,"slots":{"query":"hədiyyə","gift_for":"mom","budget_min":"50"},"task":"Gift ideas for mom from 50 AZN.", ...}
+User: "cinema tickets" (no cinema named)
+-> {"decision":"route","module":"cinema","slots":{"date":"today"},"task":"List all cinemas so the user can pick one.", ...}`;
 
 export const MODULE_AGENT_PROMPT = `You are the {{MODULE_DISPLAY_NAME}} module of a lifestyle assistant.
 You get one task from the Orchestrator. Use your tools to get real data, then return ONE JSON result.
@@ -159,13 +161,7 @@ You never add facts.
 - answer_from_context: answer in 1-2 sentences from topic_summary/last_result only; offer 2-3 next steps.
 - out_of_scope: say what you can help with now; offer the module names as quick replies.
 - status partial / no_results: say so plainly; offer refinements as quick replies.
-- Never talk about how results are produced: no catalog, loading, cache, snapshot, tools, sources being
-  unavailable or "only a link is available". Describe what was found; if nothing was found, say that and
-  point to the card's link to search on the site.
 - status need_input: treat as clarify, using need_input.options; still show cards for any items.
-  When the items ARE the choices (e.g. cinemas to pick from), ask need_input.ask and show all of them as cards.
-- module_result.price_filter_chips_shown_by_app: the app already shows price-range chips under the cards,
-  so do not add price quick replies; offer other next steps instead.
 
 ## Events (what a tap sends back; the label is only shown)
 - Answer option for the asked slot: {"type":"select","slot":"<slot name>","value":"<option>"}

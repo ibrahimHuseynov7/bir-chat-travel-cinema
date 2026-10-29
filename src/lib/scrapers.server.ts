@@ -1,6 +1,5 @@
 // Server-only data sources: CinemaPlus HTML tables, Birmarket category pages, Travelpayouts API.
 import moviesJson from "@/data/movies.json";
-import birmarketCategories from "@/data/birmarket-categories.json";
 import {
   CINEMAS,
   aviasalesSearchUrl,
@@ -220,7 +219,7 @@ export function parseBirmarketHtml(html: string): Product[] {
   return [...items.values()];
 }
 
-// Background Birmarket snapshot. Shopping also reads the matching category pages live (birmarketCategoryProducts).
+// Birmarket catalog is only ever read from this snapshot; the chat never scrapes while a user waits.
 const BIRMARKET_TTL = 6 * 3600_000;
 let catalog: { at: number; products: Product[]; complete: boolean } | null = null;
 
@@ -367,7 +366,7 @@ export function searchProducts(
   query: string,
   minPrice: number | null,
   maxPrice: number | null,
-): { products: Product[]; alternatives: Product[]; prices: number[] } {
+): { products: Product[]; alternatives: Product[] } {
   const qWords = words(query).filter((w) => w.length > 1 && !STOP.has(w));
   const wantsAccessory = qWords.some(isAccessoryWord);
   // Match from the start of a word, so "top" finds "top"/"topu" but not "laptop". Short words allow
@@ -416,12 +415,7 @@ export function searchProducts(
   const near = cheaper.filter((x) => x.price >= ref! * 0.4);
   const alternatives = (near.length >= 2 ? near : cheaper).sort(byRelevance).slice(0, 4);
 
-  return {
-    products: products.map((x) => x.p),
-    alternatives: alternatives.map((x) => x.p),
-    // Prices of every relevant product before the price filter, for the price-range filter chips.
-    prices: relevant.map((x) => x.price),
-  };
+  return { products: products.map((x) => x.p), alternatives: alternatives.map((x) => x.p) };
 }
 
 // ---------- live Birmarket lookups (tag and brand listing pages) ----------
@@ -542,83 +536,6 @@ export async function birmarketLiveSearch(
   return { products: lists.flat(), urls: used };
 }
 
-// Category index (slug, Azerbaijani name, parent) built once from birmarket.az ?view=categories pages, which
-// robots.txt allows. Lets any product word go straight to its category listing, without the catalog snapshot.
-export type BirmarketCategory = { slug: string; name: string; parent: string | null };
-export const BIRMARKET_CATEGORIES = birmarketCategories as BirmarketCategory[];
-/** Folds Azerbaijani letters and Birmarket's slug spelling to one form: "çamadan", "camadan", "chamadan" -> "camadan". */
-const fold = (w: string) =>
-  w
-    .replace(/ç/g, "c").replace(/ş/g, "s").replace(/ə/g, "e").replace(/ı/g, "i")
-    .replace(/ö/g, "o").replace(/ü/g, "u").replace(/ğ/g, "g").replace(/ch/g, "c").replace(/sh/g, "s").replace(/ou/g, "o"); // "noutbuk" = "notbuk"
-const catDepth = (() => {
-  const parent = new Map(BIRMARKET_CATEGORIES.map((c) => [c.slug, c.parent]));
-  const depth = (slug: string, n = 0): number => (n > 6 || !parent.get(slug) ? n : depth(parent.get(slug)!, n + 1));
-  return new Map(BIRMARKET_CATEGORIES.map((c) => [c.slug, depth(c.slug)]));
-})();
-const CAT_FILLER = new Set(["ve", "vs", "ile", "diger", "her", "sey"]);
-const CAT_WORDS = BIRMARKET_CATEGORIES.map((c) => {
-  const slugWs = c.slug.replace(/^\d+-/, "").split("-").map(fold);
-  const nameWs = words(c.name).map(fold);
-  // "X üçün" (for X) marks an accessory category ("Notbuklar üçün çantalar"); X itself is not what it sells.
-  const forWhat = new Set([slugWs, nameWs].flatMap((ws) => ws.filter((w, i) => ws[i + 1] === "ucun")));
-  const keep = (ws: string[]) => [...new Set(ws)].filter((w) => w.length > 1 && !CAT_FILLER.has(w) && w !== "ucun");
-  return { c, slugWs: keep(slugWs), nameWs: keep(nameWs), forWhat };
-});
-/** Same word allowing Azerbaijani endings on either side: "camadan" ~ "camadanlari", "telefonlar" ~ "telefon". */
-// Endings are at most 5 letters, so a compound ("qəhvəüyüdənləri", coffee grinders) is not "qəhvə" + ending.
-const sameStem = (a: string, b: string) => {
-  const short = Math.min(a.length, b.length);
-  if (Math.abs(a.length - b.length) > 5) return false;
-  let i = 0;
-  while (i < short && a[i] === b[i]) i++;
-  return i >= 4 && i >= short - 2; // "maşını" ~ "maşınları", "telefon" ~ "telefonlar"
-};
-
-/**
- * Categories for product words. `confident`: categories whose whole name is covered by the words
- * ("çamadan" -> "Çamadanlar"), safe to use directly. `candidates`: the closest partial matches, for the
- * model to choose from. Accessory categories ("... üçün çexollar") only count when the words ask for one.
- */
-export function birmarketCategoryMatch(query: string): {
-  confident: BirmarketCategory[];
-  candidates: BirmarketCategory[];
-} {
-  const qs = words(query).filter((w) => w.length > 2 && !STOP.has(w)).map(fold);
-  if (!qs.length) return { confident: [], candidates: [] };
-  const wantsAccessory = words(query).some(isAccessoryWord) || qs.includes("ucun");
-  const scored = CAT_WORDS.flatMap(({ c, slugWs, nameWs, forWhat }) => {
-    const hitQ = qs.filter((q) => [...slugWs, ...nameWs].some((w) => sameStem(q, w)));
-    if (!hitQ.length) return [];
-    if (!wantsAccessory && hitQ.every((q) => [...forWhat].some((w) => sameStem(q, w)))) return [];
-    // The display name says what the category sells (slugs are sometimes stale), so coverage uses the name.
-    const ws = nameWs.length ? nameWs : slugWs;
-    const coverage = ws.filter((w) => qs.some((q) => sameStem(q, w))).length / ws.length;
-    const depth = catDepth.get(c.slug) ?? 0;
-    return [{ c, hits: hitQ.length, full: coverage === 1, s: hitQ.length / qs.length + coverage + depth * 0.05 }];
-  });
-  scored.sort((a, b) => b.s - a.s);
-  // Confident only if no other category explains more of the words ("qəhvə maşını" is not just "Qəhvə").
-  const maxHits = Math.max(0, ...scored.map((x) => x.hits));
-  const full = scored.filter((x) => x.full && x.hits === maxHits);
-  const bestFull = Math.max(0, ...full.map((x) => x.s));
-  return {
-    confident: full.filter((x) => x.s >= bestFull - 0.01).slice(0, 2).map((x) => x.c),
-    candidates: scored.slice(0, 40).map((x) => x.c),
-  };
-}
-
-/** Categories up to `maxDepth` levels deep, for the model to choose from when no category name matches. */
-export function birmarketCategoryChoices(maxDepth = 1): BirmarketCategory[] {
-  return BIRMARKET_CATEGORIES.filter((c) => (catDepth.get(c.slug) ?? 0) <= maxDepth && c.name);
-}
-
-/** Products from the first listing page of each category (fetched in parallel, cached 30 min). */
-export async function birmarketCategoryProducts(slugs: string[]): Promise<Product[]> {
-  const lists = await Promise.all(slugs.map((s) => fetchListing(`https://birmarket.az/categories/${s}`)));
-  return lists.flat();
-}
-
 export async function searchFlights(q: FlightQuery): Promise<FlightData> {
   const marker = process.env["TRAVELPAYOUTS_MARKER"] || "";
   const token = process.env["TRAVELPAYOUTS_TOKEN"];
@@ -690,4 +607,124 @@ export async function searchFlights(q: FlightQuery): Promise<FlightData> {
       error: "Live prices are unavailable right now. Open AviaSales to see current prices.",
     };
   }
+}
+
+// ---------- gift ideas (no product named: "something for my mom's birthday") ----------
+// Product names never contain "gift", so a gift request reads live category pages that suit the person
+// and shows the best-rated products of each, mixed. Categories are the same top-level listing pages the
+// background catalog reads (robots-allowed), page 1 only, cached 30 minutes.
+const CAT = (slug: string) => `https://birmarket.az/categories/${slug}`;
+const GIFT_CATEGORIES: Record<string, { label: string; refine: string; url: string }> = {
+  beauty: {
+    label: "Perfume & beauty",
+    refine: "perfume as a gift",
+    url: CAT("257-gozellik-ve-saglamliq"),
+  },
+  jewelry: {
+    label: "Watches & jewelry",
+    refine: "a watch as a gift",
+    url: CAT("2266-aksessuarlar-saatlar-bezek-eshyalari"),
+  },
+  appliances: {
+    label: "Home appliances",
+    refine: "a home appliance as a gift",
+    url: CAT("106-meishet-texnikasi"),
+  },
+  home: {
+    label: "Home & decor",
+    refine: "home decor as a gift",
+    url: CAT("937-ev-ve-bag-uchun-mehsullar"),
+  },
+  tech: {
+    label: "Laptops & tech",
+    refine: "a gadget as a gift",
+    url: CAT("15-noutbuklar-ve-komputer-texnikasi"),
+  },
+  audio: {
+    label: "Headphones & audio",
+    refine: "headphones as a gift",
+    url: CAT("70-tv-audio-ve-video"),
+  },
+  sport: {
+    label: "Sport & outdoors",
+    refine: "sports gear as a gift",
+    url: CAT("516-idman-ve-feal-istirahet"),
+  },
+  car: {
+    label: "Car accessories",
+    refine: "car accessories as a gift",
+    url: CAT("1708-avtomobil-uchun-mehsullar"),
+  },
+  kids: {
+    label: "Kids & toys",
+    refine: "a toy as a gift",
+    url: CAT("779-analar-ve-balalar-uchun"),
+  },
+  gaming: {
+    label: "Gaming",
+    refine: "gaming accessories as a gift",
+    url: CAT("4835-oyunchular-uchun-mehsullar"),
+  },
+};
+const GIFT_PROFILES: [RegExp, string[]][] = [
+  [
+    /mom|mother|mum|ana|anam|мам|wife|həyat yoldaş|жена|sister|bacı|сестр|girlfriend|qız|woman|women|qadın|grandma|nənə|бабушк/i,
+    ["beauty", "jewelry", "appliances"],
+  ],
+  [
+    /dad|father|ata|atam|пап|отец|husband|ər|муж|brother|qardaş|брат|boyfriend|man\b|men\b|kişi|grandpa|baba|дедушк/i,
+    ["jewelry", "tech", "sport", "car"],
+  ],
+  [/child|kid|son|daughter|uşaq|oğlum|qızım|ребен|сын|доч|baby|körpə/i, ["kids", "gaming"]],
+  [
+    /friend|dost|друг|подруг|colleague|iş yoldaş|коллег|boss|teacher|müəllim/i,
+    ["audio", "jewelry", "home"],
+  ],
+];
+export const GIFT_RX =
+  /gift|present|hədiyyə|hediyye|hədiyə|подар|ad günü|birthday|день рождения|bayram/i;
+
+export function giftCategories(
+  forWhom: string,
+): { key: string; label: string; refine: string; url: string }[] {
+  const keys = GIFT_PROFILES.find(([rx]) => rx.test(forWhom))?.[1] ?? ["audio", "beauty", "home"];
+  return keys.map((k) => ({ key: k, ...GIFT_CATEGORIES[k]! }));
+}
+
+/** Best-rated products per suitable category, interleaved (cat A #1, cat B #1, ... cat A #2 ...). */
+export async function birmarketGiftIdeas(
+  forWhom: string,
+  maxPrice: number | null,
+  limit = 6,
+  minPrice: number | null = null,
+): Promise<{ products: Product[]; categories: { label: string; refine: string }[] }> {
+  const cats = giftCategories(forWhom).slice(0, 3);
+  const lists = await Promise.all(cats.map((c) => fetchListing(c.url)));
+  const quality = (p: Product) => (p.rating ?? 0) * Math.log10(10 + (p.reviews ?? 0));
+  const ranked = lists.map((list) =>
+    list
+      .filter(
+        (p) =>
+          p.price_azn != null &&
+          p.price_azn >= Math.max(10, minPrice ?? 0) &&
+          (maxPrice == null || p.price_azn <= maxPrice),
+      )
+      .filter((p) => !isAccessoryWord(words(p.name)[0] ?? ""))
+      .sort((a, b) => quality(b) - quality(a)),
+  );
+  const out: Product[] = [];
+  for (let i = 0; out.length < limit && ranked.some((l) => l[i]); i++)
+    for (const l of ranked)
+      if (l[i] && out.length < limit && !out.some((p) => p.id === l[i]!.id)) out.push(l[i]!);
+  return {
+    products: out,
+    categories: cats
+      .filter((_, i) => ranked[i]!.length)
+      .map((c) => ({ label: c.label, refine: c.refine })),
+  };
+}
+
+/** "smth for my mom", "anama bir şey", "что-то для мамы": a person to buy for, without a product. */
+export function isGiftRecipient(text: string): boolean {
+  return GIFT_PROFILES.some(([rx]) => rx.test(text));
 }

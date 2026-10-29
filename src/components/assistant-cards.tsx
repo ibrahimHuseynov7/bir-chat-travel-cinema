@@ -1,7 +1,7 @@
 // Renders the UI JSON contract: cards (one action each) and quick-reply chips. Taps send the event object back.
 import { Fragment, useState } from "react";
-import { ExternalLink, Star, CalendarDays, SlidersHorizontal, Check } from "lucide-react";
-import type { Card, FilterChip, UI, UIEvent } from "@/lib/assistant/core/schemas";
+import { ExternalLink, Star, CalendarDays } from "lucide-react";
+import type { Card, UI, UIEvent } from "@/lib/assistant/core/schemas";
 
 const btn =
   "pill inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold bg-primary text-primary-foreground hover:opacity-85 transition";
@@ -40,7 +40,6 @@ const HIDDEN = new Set([
   "cinemas",
   "session_count",
   "tags",
-  "gift_idea",
 ]);
 const money = (amount: number, currency?: string | null) =>
   currency === "AZN"
@@ -198,11 +197,6 @@ export function AssistantCard({
       {isFlight && a["departure_time"] && card.verify && (
         <div className="text-[11px] text-muted-foreground">{card.subtitle.split(" · ").pop()}</div>
       )}
-      {typeof a["gift_idea"] === "string" && (
-        <div className="flex flex-wrap gap-1">
-          <span className={`${tag} bg-primary/10`}>🎁 {a["gift_idea"]}</span>
-        </div>
-      )}
       {genres.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {genres.slice(0, 3).map((g) => (
@@ -335,109 +329,16 @@ function DatePicker({
   );
 }
 
-const CUSTOM: Record<string, { label: string; min: string; max: string }> = {
-  az: { label: "Öz aralığım", min: "min ₼", max: "maks ₼" },
-  ru: { label: "Свой диапазон", min: "от ₼", max: "до ₼" },
-  en: { label: "Custom range", min: "min ₼", max: "max ₼" },
-  tr: { label: "Özel aralık", min: "min ₼", max: "maks ₼" },
-};
-
-/** Price-range chips under product cards (built by the server); "Custom range" lets the user type min/max. */
-function Filters({
-  filters,
-  onEvent,
-  disabled,
-  lang,
-}: {
-  filters: FilterChip[];
-  onEvent: (e: UIEvent, label: string) => void;
-  disabled: boolean;
-  lang: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const [min, setMin] = useState(""),
-    [max, setMax] = useState("");
-  const tx = CUSTOM[lang] ?? CUSTOM["en"]!;
-  const slot = filters[0]?.event.slot ?? "price_range";
-  const apply = () => {
-    const lo = Number(min) > 0 ? Math.round(Number(min)) : null;
-    const hi = Number(max) > 0 ? Math.round(Number(max)) : null;
-    if (lo == null && hi == null) return;
-    const value = `${lo ?? ""}-${hi ?? ""}`;
-    const label =
-      lo != null && hi != null ? `${lo}–${hi} ₼` : lo != null ? `${lo}+ ₼` : `≤ ${hi} ₼`;
-    onEvent({ type: "select", slot, value }, label);
-    setOpen(false);
-  };
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <SlidersHorizontal className="size-4 text-muted-foreground" aria-hidden />
-      {filters.map((f, i) => (
-        <button
-          key={i}
-          disabled={disabled || f.active}
-          aria-pressed={f.active}
-          onClick={() => onEvent(f.event, f.label)}
-          className={`${chip} ${f.active ? "bg-primary text-primary-foreground disabled:opacity-100 disabled:hover:bg-primary disabled:hover:text-primary-foreground" : ""}`}
-        >
-          {f.active && <Check className="mr-1 inline size-3.5" />}
-          {f.label}
-        </button>
-      ))}
-      {!open ? (
-        <button disabled={disabled} onClick={() => setOpen(true)} className={`${chip} italic`}>
-          {tx.label}
-        </button>
-      ) : (
-        <div className="pill flex items-center gap-2 px-3 py-1 text-sm">
-          <input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            value={min}
-            placeholder={tx.min}
-            onChange={(e) => setMin(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && apply()}
-            className="w-20 bg-transparent outline-none"
-            aria-label={tx.min}
-          />
-          <span>–</span>
-          <input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            value={max}
-            placeholder={tx.max}
-            onChange={(e) => setMax(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && apply()}
-            className="w-20 bg-transparent outline-none"
-            aria-label={tx.max}
-          />
-          <button
-            disabled={disabled || (!(Number(min) > 0) && !(Number(max) > 0))}
-            onClick={apply}
-            className="rounded-full bg-primary px-3 py-0.5 text-primary-foreground disabled:opacity-40"
-          >
-            OK
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export function AssistantReply({
   ui,
   onEvent,
   onTypeOwn,
   live,
-  lang = "en",
 }: {
   ui: UI;
   onEvent: (e: UIEvent, label: string) => void;
   onTypeOwn: () => void;
   live: boolean;
-  lang?: string;
 }) {
   return (
     <>
@@ -447,9 +348,6 @@ export function AssistantReply({
             <AssistantCard key={c.id} card={c} onEvent={onEvent} disabled={!live} />
           ))}
         </div>
-      )}
-      {ui.filters && ui.filters.length > 0 && (
-        <Filters filters={ui.filters} onEvent={onEvent} disabled={!live} lang={lang} />
       )}
       {ui.quick_replies.length > 0 && (
         <div className="flex flex-wrap gap-2">

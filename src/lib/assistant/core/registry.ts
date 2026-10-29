@@ -21,9 +21,6 @@ const SlotSchema = z.object({
   ask_first: z.boolean().optional(),
   // How the Responder should build options when example_options don't fit (e.g. cities of the user's country).
   options_hint: z.string().optional(),
-  // While this slot is empty, code runs the named tool and shows its items as cards to pick from
-  // (e.g. the list of cinemas) before the module does anything else. A tap on a card fills the slot.
-  choose_first: z.string().optional(),
 });
 const ToolSchema = z.object({
   name: z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/),
@@ -90,7 +87,6 @@ const fmtSlot = (s: SlotDef) =>
   (s.default ? ` (default: ${s.default}${s.default_if ? ` only if ${s.default_if}` : ""})` : "") +
   (s.fallback ? ` (if unknown, code uses: ${s.fallback})` : "") +
   (s.example_options?.length ? ` (options: ${s.example_options.join(", ")})` : "") +
-  (s.choose_first ? ` (if unknown, code shows a list to pick from; never ask for it, route)` : "") +
   (s.hint ? ` (value format: ${s.hint})` : "");
 
 /** One "module card" per entry, injected into the Orchestrator prompt at {{MODULE_CARDS}}. */

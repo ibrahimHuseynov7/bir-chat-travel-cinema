@@ -65,6 +65,17 @@ export const CONFIG = {
   },
   /** Live Birmarket listing lookups (tag / brand pages) on top of the background catalog snapshot. */
   birmarketLive: () => env("BIRMARKET_LIVE_LOOKUP", "true") !== "false",
+  /**
+   * Birmarket MP Catalog API (primary product source; no key needed today). mp-catalog.birmarket.az is
+   * behind a Cloudflare block, so the umico.az host is the default. BIRMARKET_CATALOG=false switches the
+   * shopping module back to page scraping only.
+   */
+  birmarketCatalog: {
+    enabled: () => env("BIRMARKET_CATALOG", "true") !== "false",
+    url: () => env("BIRMARKET_API_URL", "https://mp-catalog.umico.az"),
+    apiKey: () => env("BIRMARKET_API_KEY"),
+    timeoutMs: 10_000,
+  },
   stateSecret: () => env("STATE_SECRET") || env("COMPANY_AI_KEY") || env("AZURE_OPENAI_API_KEY"),
   timezone: "Asia/Baku",
   recentTurns: 6,

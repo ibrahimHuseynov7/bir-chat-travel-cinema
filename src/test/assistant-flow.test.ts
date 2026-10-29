@@ -37,28 +37,6 @@ const CATALOG: Product[] = [
     image_url: null,
     url: "https://birmarket.az/product/201-samsung",
   },
-  // Gift candidates (for "a present for my mom").
-  ...(
-    [
-      ["301", "Ətir Lattafa Khamrah EDP 100 ml", 65, 4.9, 200],
-      ["302", "Qadın çantası Michael Kors Jet Set", 240, 4.7, 40],
-      ["303", "Sırğa gümüş 925 əyar", 35, 4.6, 15],
-      ["304", "Saç fenı Philips BHD 2200W", 89, 4.8, 120],
-      ["305", "Blender Bosch ErgoMixx", 120, 4.5, 60],
-      ["306", "Saat üçün qayış silikon", 15, 4.9, 500],
-      ["307", "Uşaq ətiri Disney Frozen", 20, 4.9, 300],
-      ["308", "Ətir kişi üçün Dior Sauvage EDT", 210, 4.9, 90],
-    ] as const
-  ).map(([id, name, price, rating, reviews]) => ({
-    id,
-    name,
-    price_azn: price,
-    old_price: null,
-    rating,
-    reviews,
-    image_url: null,
-    url: `https://birmarket.az/product/${id}-gift`,
-  })),
 ];
 vi.mock("@/lib/scrapers.server", async (orig) => {
   const real = await orig<typeof import("@/lib/scrapers.server")>();
@@ -334,6 +312,22 @@ beforeAll(() => {
         "<title>Visa</title><p>Azerbaijani citizens: Turkey, Georgia visa-free.</p>",
         { headers: { "content-type": "text/html" } },
       );
+    if (url.startsWith("https://birmarket.az/categories/")) {
+      const cat = url.split("/categories/")[1]!;
+      const pages: Record<string, string> = {
+        "257-gozellik-ve-saglamliq":
+          bmLink("5001", "Ətir Lancome La Vie Est Belle EDP 50 ml", "189.00 ₼") +
+          bmLink("5002", "Fen Dyson Supersonic", "899.00 ₼") +
+          bmLink("5003", "Qoruyucu şüşə test", "12.00 ₼"),
+        "2266-aksessuarlar-saatlar-bezek-eshyalari":
+          bmLink("6001", "Qol saatı Casio Sheen", "249.00 ₼") +
+          bmLink("6002", "Sırğa gümüş 925", "79.00 ₼"),
+        "106-meishet-texnikasi": bmLink("7001", "Kofe maşını DeLonghi Dedica", "429.00 ₼"),
+      };
+      return new Response(pages[cat] ?? "<div></div>", {
+        headers: { "content-type": "text/html" },
+      });
+    }
     if (url === "https://birmarket.az/tags/iphone")
       return new Response(IPHONE_TAG_HTML, { headers: { "content-type": "text/html" } });
     if (url.startsWith("https://birmarket.az/")) return new Response("not found", { status: 404 });
@@ -906,6 +900,39 @@ describe("customer demo flow", () => {
     expect(all.items.some((i) => i.title.includes("Samsung"))).toBe(false);
   });
 
+  it("gift with no product named ('something for my mom'): real product suggestions", async () => {
+    const giftFor = (query: string, slots: Record<string, string> = {}) =>
+      DIRECT_ADAPTERS["birmarket_v1"]!({ query, slots, session: null as never, language: "en" });
+    const r = await giftFor("hədiyyə", { gift_for: "mom" });
+    expect(r.status).toBe("ok");
+    expect(r.items.map((i) => i.title)).toEqual([
+      "Ətir Lancome La Vie Est Belle EDP 50 ml",
+      "Qol saatı Casio Sheen",
+      "Kofe maşını DeLonghi Dedica",
+      "Fen Dyson Supersonic",
+      "Sırğa gümüş 925",
+    ]);
+    expect(r.suggestions.map((x) => x.label)).toEqual([
+      "Perfume & beauty",
+      "Watches & jewelry",
+      "Home appliances",
+    ]);
+    expect(
+      (await giftFor("i wanna buy smth for my mom", { budget_max: "200" })).items.map(
+        (i) => i.price.amount,
+      ),
+    ).toEqual([189, 79]);
+    for (const q of [
+      "anama bir şey almaq istəyirəm",
+      "хочу купить что-то для мамы",
+      "something for my mom",
+    ])
+      expect((await giftFor(q)).summary).toMatch(/Gift ideas/);
+    expect((await giftFor("smartfon apple iphone 16")).summary).not.toMatch(/Gift ideas/);
+    // A named product keeps the normal search.
+    expect((await giftFor("ətir", { gift_for: "mom" })).summary).not.toMatch(/Gift ideas/);
+  });
+
   it("cinema list: malls / cinemas come back as selectable cards", async () => {
     const ctx = newToolContext();
     const out = (await AGENT_ADAPTERS["cinemaplus_list_v1"]!(
@@ -967,14 +994,13 @@ describe("customer demo flow", () => {
     ]);
   });
 
-  it("cinema named without a date shows today's films instead of asking first", async () => {
+  it("cinema without a date shows today's films instead of asking first", async () => {
     queue.orchestrator.push(
       json({
         ...D,
         decision: "clarify",
         module: "cinema",
         topic_change: true,
-        slots: { cinema: "Deniz Mall" },
         missing_slot: { name: "date" },
       }),
     );
@@ -1037,164 +1063,5 @@ describe("customer demo flow", () => {
     expect(bodies.at(-1)!["reasoning_effort"]).toBe("minimal");
     // Remembered: the second call goes straight to the accepted value.
     expect(bodies.filter((b) => b["reasoning_effort"] === "none").length).toBe(1);
-  });
-});
-
-describe("gift ideas with price filters, and cinema picked first", () => {
-  it("gift detection: recipient group and leftover product words", async () => {
-    const { giftPlan, priceBuckets, parseRange } = await import("@/lib/assistant/tools/gifts");
-    expect(giftPlan("hədiyyə", "mom")).toMatchObject({ group: "female", rest: [] });
-    expect(giftPlan("подарок маме")!.group).toBe("female");
-    expect(giftPlan("gift for my son's birthday")!.group).toBe("kid");
-    expect(giftPlan("present for my girlfriend")!.group).toBe("female"); // not "girl" -> kid
-    expect(giftPlan("hədiyyə", "dad")!.group).toBe("male");
-    expect(giftPlan("hədiyyə ətir", "mom")!.rest).toEqual(["ətir"]);
-    expect(giftPlan("smartfon apple iphone")).toBeNull();
-    expect(priceBuckets([35, 65, 89, 120, 240])).toEqual([
-      { min: null, max: 60 },
-      { min: 60, max: 100 },
-      { min: 100, max: 120 },
-      { min: 120, max: null },
-    ]);
-    expect(parseRange("50-100")).toEqual({ min: 50, max: 100 });
-    expect(parseRange("-60")).toEqual({ min: null, max: 60 });
-    expect(parseRange("")).toEqual({ min: null, max: null });
-  });
-
-  it("'a present for my mom' -> mixed Birmarket gift ideas; a price chip filters without an Orchestrator call", async () => {
-    calls.length = 0;
-    queue.orchestrator.push(
-      json({
-        ...D,
-        decision: "route",
-        module: "shopping_assistant",
-        topic_change: true,
-        slots: { query: "hədiyyə", recipient: "mom" },
-        task: "Find gift ideas for the user's mom.",
-        topic_summary: "Gift for mom.",
-      }),
-    );
-    queue.responder.push(json({ text: "Here are some gift ideas for your mom.", cards: [] }));
-    let r = await handleTurn({ message: "I want to buy a present for my mom", user });
-    const titles = r.ui!.cards.map((c) => c.title);
-    // One per idea first: perfume, handbag, jewelry, beauty, kitchen.
-    expect(titles).toEqual([
-      "Ətir Lattafa Khamrah EDP 100 ml",
-      "Qadın çantası Michael Kors Jet Set",
-      "Sırğa gümüş 925 əyar",
-      "Saç fenı Philips BHD 2200W",
-      "Blender Bosch ErgoMixx",
-    ]);
-    // Not for mom: a watch strap (accessory), a kids' perfume, a men's perfume.
-    expect(titles.some((t) => /qayış|Uşaq|kişi/.test(t))).toBe(false);
-    expect(attr(r.ui!.cards[0]!, "gift_idea")).toBe("Perfume");
-    expect(r.ui!.cards[0]!.action.event.value).toBe("https://birmarket.az/product/301-gift");
-    expect(calls.filter((c) => c.role === "module_agent").length).toBe(0); // direct executor
-    // Price filter chips come from code; none active yet.
-    expect(r.ui!.filters!.map((f) => f.label)).toEqual([
-      "Under 60 ₼",
-      "60–100 ₼",
-      "100–120 ₼",
-      "120 ₼+",
-    ]);
-    expect(r.ui!.filters!.every((f) => !f.active && f.event.slot === "price_range")).toBe(true);
-    // The Responder model does not see the chips, only that the app shows them.
-    expect(calls.find((c) => c.role === "responder")!.last).toContain(
-      "price_filter_chips_shown_by_app",
-    );
-
-    // Tap "Under 60" -> same gift search, max 60 AZN; no Orchestrator call.
-    const orchCalls = calls.filter((c) => c.role === "orchestrator").length;
-    queue.responder.push(json({ text: "Gift ideas up to 60 AZN.", cards: [] }));
-    r = await handleTurn({ state: r.state, event: r.ui!.filters![0]!.event });
-    expect(calls.filter((c) => c.role === "orchestrator").length).toBe(orchCalls);
-    expect(r.ui!.cards.map((c) => c.title)).toEqual(["Sırğa gümüş 925 əyar"]);
-    expect(r.ui!.filters!.find((f) => f.active)!.label).toBe("Under 60 ₼");
-    expect(r.ui!.filters![0]!.label).toBe("Any price");
-    let s = (await decodeState(r.state))!;
-    expect(s.topics.at(-1)!.slots["budget_max"]).toBe("60");
-
-    // Custom range from the app (100-250) -> handbag and blender only.
-    queue.responder.push(json({ text: "Gift ideas from 100 to 250 AZN.", cards: [] }));
-    r = await handleTurn({
-      state: r.state,
-      event: { type: "select", slot: "price_range", value: "100-250" },
-    });
-    expect(r.ui!.cards.map((c) => c.title).sort()).toEqual([
-      "Blender Bosch ErgoMixx",
-      "Qadın çantası Michael Kors Jet Set",
-    ]);
-    expect(r.ui!.filters!.find((f) => f.active)!.label).toBe("100–250 ₼");
-
-    // "Any price" clears both bounds.
-    queue.responder.push(json({ text: "All gift ideas again.", cards: [] }));
-    r = await handleTurn({ state: r.state, event: r.ui!.filters![0]!.event });
-    s = (await decodeState(r.state))!;
-    expect(s.topics.at(-1)!.slots["budget_min"]).toBeUndefined();
-    expect(s.topics.at(-1)!.slots["budget_max"]).toBeUndefined();
-    expect(r.ui!.cards.length).toBe(5);
-  });
-
-  it("normal product searches get price chips too (suitcases)", async () => {
-    const res = await DIRECT_ADAPTERS["birmarket_v1"]!({
-      query: "çamadan",
-      slots: { budget_max: "150" },
-      session: null as never,
-      language: "en",
-    });
-    expect(res.items.map((i) => i.title)).toEqual(["Çamadan American Tourister 68 sm"]);
-    expect(res.filters![0]!.label).toBe("Any price");
-    expect(res.filters!.find((f) => f.active)!.event.value).toBe("-150");
-  });
-
-  it("'I want to go to the cinema' -> cinemas to pick first (no model call for the list); a tap shows what's on there", async () => {
-    calls.length = 0;
-    queue.orchestrator.push(
-      json({
-        ...D,
-        decision: "route",
-        module: "cinema",
-        topic_change: true,
-        slots: {},
-        task: "The user wants to go to the cinema.",
-        topic_summary: "Wants to go to the cinema.",
-      }),
-    );
-    queue.responder.push(
-      json({
-        text: "Which cinema do you want to go to?",
-        cards: [],
-        quick_replies: [
-          { label: "Any cinema", event: { type: "select", slot: "cinema", value: "Any cinema" } },
-        ],
-      }),
-    );
-    let r = await handleTurn({ message: "I want to go to the cinema", user });
-    expect(calls.filter((c) => c.role === "module_agent").length).toBe(0);
-    expect(r.ui!.cards.length).toBeGreaterThan(1);
-    expect(r.ui!.cards.every((c) => c.kind === "cinema")).toBe(true);
-    expect(r.ui!.cards.map((c) => c.title)).toContain("Deniz Mall");
-    expect(r.ui!.cards.some((c) => c.title === "Ganja Mall")).toBe(false); // home city only
-    const deniz = r.ui!.cards.find((c) => c.title === "Deniz Mall")!;
-    expect(deniz.action.event).toEqual({ type: "select", slot: "cinema", value: "Deniz Mall" });
-    expect(r.ui!.quick_replies.at(-1)!.event.type).toBe("free_text");
-
-    // Tap Deniz Mall -> no Orchestrator call; the module shows the films there.
-    queue.module_agent.push(tool("cinema_sessions", { date: TODAY, cinemas: ["Deniz Mall"] }));
-    queue.module_agent.push(
-      fromTools((res) => ({
-        status: "ok",
-        summary: "Films at Deniz Mall.",
-        items: (res[0] as { movies: { ref: string }[] }).movies.map((m) => ({ ref: m.ref })),
-      })),
-    );
-    queue.responder.push(json({ text: "Here's what's on at Deniz Mall.", cards: [] }));
-    r = await handleTurn({ state: r.state, event: deniz.action.event });
-    expect(calls.filter((c) => c.role === "orchestrator").length).toBe(1);
-    expect(calls.find((c) => c.role === "module_agent")!.system).toContain('"cinema":"Deniz Mall"');
-    expect(r.ui!.cards.map((c) => c.kind)).toEqual(["movie", "movie"]);
-    expect(r.ui!.cards[0]!.title).toBe("Street Fighter");
-    const s = (await decodeState(r.state))!;
-    expect(s.topics.at(-1)!.slots["cinema"]).toBe("Deniz Mall");
   });
 });

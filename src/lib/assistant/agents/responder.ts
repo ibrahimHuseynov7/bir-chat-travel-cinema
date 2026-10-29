@@ -101,14 +101,7 @@ function compactItem(i: Item) {
   };
 }
 function compactResult(r: ModuleResult | null) {
-  if (!r) return null;
-  // Filter chips are rendered by code; the model only needs to know they exist.
-  const { filters, ...rest } = r;
-  return {
-    ...rest,
-    items: r.items.map(compactItem),
-    ...(filters?.length ? { price_filter_chips_shown_by_app: true } : {}),
-  };
+  return r ? { ...r, items: r.items.map(compactItem) } : null;
 }
 export function responderView(input: ResponderInput) {
   return {
@@ -315,15 +308,7 @@ export function finalizeUI(ui: ResponderUI, input: ResponderInput, session: Sess
     .trim();
   const ss = sentences(text);
   if (ss.length > 2) text = ss.slice(0, 2).join(" ");
-  // Filter chips (e.g. price ranges) come straight from the module result, never from the model.
-  const filters = input.decision.decision === "route" ? input.module_result?.filters : undefined;
-  return {
-    text,
-    cards,
-    quick_replies: qrs,
-    input_hint: ui.input_hint ?? "",
-    ...(filters?.length ? { filters } : {}),
-  };
+  return { text, cards, quick_replies: qrs, input_hint: ui.input_hint ?? "" };
 }
 
 export function fallbackUI(_session: Session, language: string): UI {

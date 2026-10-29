@@ -4,9 +4,7 @@ import { CONFIG, todayISO } from "../config";
 import { runOrchestrator } from "../agents/orchestrator";
 import { errorResult, runModuleAgent } from "../agents/module_agent";
 import { buildResponderInput, fallbackUI, runResponder } from "../agents/responder";
-import { AGENT_ADAPTERS, DIRECT_ADAPTERS } from "../tools/adapters";
-import { parseRange } from "../tools/gifts";
-import { newToolContext } from "../tools/web";
+import { DIRECT_ADAPTERS } from "../tools/adapters";
 import { defaultValue, getEntry, type RegistryEntry, type SlotDef } from "./registry";
 import {
   type Decision,
@@ -174,8 +172,7 @@ function askOrAssume(s: Session, cur: Topic, entry: RegistryEntry, d: Decision):
     !toAsk.includes(wantedDef) &&
     wantedDef.ask &&
     !usable(wantedDef) &&
-    !wantedDef.fallback &&
-    !wantedDef.choose_first // picked from cards by the module step, not asked as a question
+    !wantedDef.fallback
   )
     toAsk.unshift(wantedDef);
 
@@ -220,56 +217,10 @@ export function withDefaults(
   return out;
 }
 
-/** A tap whose meaning is fully known in code: the module runs again without an Orchestrator call. */
-type CodeRoute = { task: string };
-type Pre = { userTurn: unknown; display: string; codeRoute?: CodeRoute };
-
 /** Tap events: applied in code; the Orchestrator also sees the raw event (no label parsing). */
-function preprocess(s: Session, req: TurnRequest): Pre | null {
+function preprocess(s: Session, req: TurnRequest): { userTurn: unknown; display: string } | null {
   const e = req.event;
   if (!e) return { userTurn: req.message!.trim(), display: req.message!.trim() };
-  const act = activeTopic(s);
-  // Price filter chip under products: sets (or clears) budget_min / budget_max and shows the results again.
-  if (e.type === "select" && e.slot === "price_range" && act) {
-    const r = parseRange(e.value);
-    for (const [k, v] of [
-      ["budget_min", r.min],
-      ["budget_max", r.max],
-    ] as const) {
-      if (v == null) delete act.slots[k];
-      else act.slots[k] = String(v);
-      if (act.assumed) delete act.assumed[k];
-    }
-    const what =
-      r.min == null && r.max == null
-        ? "any price"
-        : `price ${r.min ?? 0}${r.max != null ? `-${r.max}` : "+"} AZN`;
-    return {
-      userTurn: e,
-      display: `[filter] ${what}`,
-      codeRoute: { task: `Show the same search filtered by ${what}.` },
-    };
-  }
-  // A card picked for a choose_first slot (e.g. a cinema): fill it and continue the request.
-  const entry = act ? getEntry(act.module) : null;
-  const chooseDef =
-    entry && e.type === "select" && e.slot && e.value
-      ? [...entry.required_slots, ...entry.optional_slots].find(
-          (d) => d.choose_first && d.name === e.slot,
-        )
-      : undefined;
-  if (act && chooseDef && e.value) {
-    act.slots[chooseDef.name] = e.value;
-    return {
-      userTurn: e,
-      display: `[tap] ${chooseDef.name}=${e.value}`,
-      codeRoute: {
-        task: `The user picked ${chooseDef.name} "${e.value}". Continue the request with it${
-          act.summary ? `: ${act.summary}` : "."
-        }`,
-      },
-    };
-  }
   if (e.type === "free_text" || e.type === "handoff_url") return null; // handled by the app
   if (e.type === "select" && e.slot === "pending_intent") {
     s.pending_intents = s.pending_intents.filter((p) => p !== e.value);
@@ -289,43 +240,6 @@ function preprocess(s: Session, req: TurnRequest): Pre | null {
   if (a && e.slot && e.value && (e.type === "select" || e.type === "date_picker"))
     a.slots[e.slot] = e.value;
   return { userTurn: e, display: `[tap] ${e.slot ? e.slot + "=" : ""}${e.value ?? e.type}` };
-}
-
-/**
- * A slot with `choose_first` (e.g. cinema) that is still empty: run its tool in code and return the items as
- * cards to pick from (status need_input). No model call. Null when the slot is filled or the tool found nothing.
- */
-export async function chooseFirst(
-  entry: RegistryEntry,
-  slots: Record<string, string>,
-): Promise<ModuleResult | null> {
-  const def = [...entry.required_slots, ...entry.optional_slots].find(
-    (d) => d.choose_first && !has(slots, d.name),
-  );
-  const tool = def && entry.tools.find((x) => x.name === def.choose_first);
-  const adapter = tool && AGENT_ADAPTERS[tool.adapter];
-  if (!def || !tool || !adapter) return null;
-  const props = Object.keys(
-    ((tool.input_schema as { properties?: Record<string, unknown> }).properties ?? {}) as object,
-  );
-  const args = Object.fromEntries(props.filter((k) => has(slots, k)).map((k) => [k, slots[k]]));
-  const ctx = newToolContext();
-  try {
-    await adapter(args, tool, ctx);
-  } catch (e) {
-    console.error("choose_first tool failed:", (e as Error).message);
-    return null;
-  }
-  const items = [...ctx.items.values()].slice(0, entry.max_cards ?? CONFIG.defaultMaxCards);
-  if (!items.length) return null;
-  return {
-    status: "need_input",
-    summary: `${items.length} options for ${def.name}; the user picks one first.`,
-    items,
-    suggestions: [],
-    need_input: { slot: def.name, ask: def.ask ?? "", options: def.example_options ?? [] },
-    refinements: [],
-  };
 }
 
 export async function handleTurn(req: TurnRequest): Promise<TurnResponse> {
@@ -356,31 +270,10 @@ export async function handleTurn(req: TurnRequest): Promise<TurnResponse> {
   let decision: Decision | null = null;
   let ui: UI;
   try {
-    // 1) Orchestrator (skipped for taps whose meaning code already knows: price filters, a picked cinema)
-    const routedTopic = pre.codeRoute ? activeTopic(session) : null;
-    let raw: Decision;
-    if (pre.codeRoute && routedTopic) {
-      raw = {
-        decision: "route",
-        module: routedTopic.module,
-        topic_change: false,
-        resume_topic_id: null,
-        slots: { ...routedTopic.slots },
-        missing_slot: null,
-        task: pre.codeRoute.task,
-        topic_summary: "",
-        new_pending_intents: [],
-        reply_language: session.last_language ?? session.user.language,
-        profile_updates: {},
-      };
-      log["orchestrator"] = { skipped: "tap routed in code", output: raw };
-    } else {
-      const orch = await runOrchestrator(session, pre.userTurn);
-      log["orchestrator"] = { input: structuredClone(orch.input), output: orch.decision };
-      raw = orch.decision;
-    }
-    session.last_language = raw.reply_language;
-    decision = applyDecision(session, raw);
+    // 1) Orchestrator
+    const orch = await runOrchestrator(session, pre.userTurn);
+    log["orchestrator"] = { input: structuredClone(orch.input), output: orch.decision };
+    decision = applyDecision(session, orch.decision);
     log["decision_applied"] = decision;
     const entry: RegistryEntry | null = getEntry(decision.module);
     const topic = activeTopic(session);
@@ -403,8 +296,6 @@ export async function handleTurn(req: TurnRequest): Promise<TurnResponse> {
           moduleResult = errorResult((e as Error).message);
         }
         log["module"] = { executor: "direct", input: { slots }, output: moduleResult };
-      } else if ((moduleResult = await chooseFirst(entry, slots))) {
-        log["module"] = { executor: "choose_first", input: { slots }, output: moduleResult };
       } else {
         const m = await runModuleAgent(
           entry,

@@ -34,8 +34,6 @@ export interface Session {
   next_topic_num: number;
   /** Tool results stored by code under last_result_ref. Never pasted into prompts wholesale. */
   results: Record<string, ModuleResult>;
-  /** Reply language of the last routed turn (used when a tap is routed in code without the Orchestrator). */
-  last_language?: string;
 }
 
 export function newSession(
