@@ -12,7 +12,7 @@ import {
 } from "../core/schemas";
 import type { Session } from "../core/state";
 import { type Checked, runJSON } from "../core/validate";
-import { t } from "../core/i18n";
+import { dateLabel, t } from "../core/i18n";
 
 export interface ResponderInput {
   decision: Decision;
@@ -236,6 +236,9 @@ export function finalizeUI(ui: ResponderUI, input: ResponderInput, session: Sess
         def?.picker && q.event.type === "select" && q.event.value === def.picker.option
           ? { type: "date_picker" as const, slot: def.name }
           : q.event;
+      // Date chips: the label is written in code from the ISO dates in the value (the model may garble month names).
+      const dl = dateLabel(event.value ?? "", lang) ?? dateLabel(q.label, lang);
+      if (dl) return { label: dl, event };
       return { label: q.label.trim().split(/\s+/).slice(0, 4).join(" "), event };
     });
 

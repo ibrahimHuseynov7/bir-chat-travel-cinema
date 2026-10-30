@@ -181,6 +181,8 @@ You never add facts.
 - Cards: return only {"id": "<item id>"} per card (code copies title, price, times and action from the item).
   Every question has options. "Type my own" is last when you ask for input.
 - Chip labels: max 4 words, in {{REPLY_LANGUAGE}}.
+- Date options (e.g. for the dates slot): event value = exact ISO dates, "YYYY-MM-DD/YYYY-MM-DD" for a range or
+  "YYYY-MM-DD" for one day; code writes the chip label from them.
 - Never mention modules, tools, agents, JSON or errors to the user.
 
 ## Self-check before output
