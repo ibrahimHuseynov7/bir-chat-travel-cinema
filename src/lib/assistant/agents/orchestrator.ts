@@ -27,7 +27,7 @@ export async function runOrchestrator(session: Session, userTurn: unknown) {
   const system = fill(ORCHESTRATOR_PROMPT, { MODULE_CARDS: moduleCards(), TODAY: todayISO() });
   const input = { user_turn: userTurn, state: compactState(session), today: todayISO() };
   const ids = registry().map((e) => e.id);
-  const { value, raw } = await runJSON<Decision>(
+  const { value, raw, calls } = await runJSON<Decision>(
     "orchestrator",
     [
       { role: "system", content: system },
@@ -47,5 +47,5 @@ export async function runOrchestrator(session: Session, userTurn: unknown) {
       return { hard, soft: [] };
     },
   );
-  return { decision: value, input, raw };
+  return { decision: value, input, raw, calls };
 }

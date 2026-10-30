@@ -11,6 +11,12 @@ export interface ToolContext {
   items: Map<string, Item>;
   /** Next-step chips derived from tool data in code (e.g. "Only MXP" when a city has several airports). */
   suggestions: { label: string; value: string }[];
+  /**
+   * Pages of search results downloaded in the background while the model reads the results, so a later
+   * fetch_page returns at once. Set only when the module has fetch_page. Nothing here counts as "fetched"
+   * until the model actually calls fetch_page (grounding stays the same).
+   */
+  prefetch?: Map<string, Promise<FetchedPage>>;
 }
 export const newToolContext = (): ToolContext => ({
   seen: new Map(),
@@ -18,6 +24,18 @@ export const newToolContext = (): ToolContext => ({
   items: new Map(),
   suggestions: [],
 });
+
+/** Starts downloading the top search results in the background (see ToolContext.prefetch). */
+export function prefetchPages(results: SearchResult[], ctx: ToolContext, max = 4) {
+  if (!ctx.prefetch) return;
+  for (const r of results.slice(0, max)) {
+    const k = normUrl(r.url);
+    if (ctx.prefetch.has(k)) continue;
+    const p = loadPage(r.url);
+    p.catch(() => {}); // a failed prefetch only matters if the model asks for that page
+    ctx.prefetch.set(k, p);
+  }
+}
 /** Registers code-built items so the agent can reference them, and marks their URLs as tool-returned. */
 export function offerItems(ctx: ToolContext, items: Item[]) {
   for (const it of items) {
@@ -166,6 +184,14 @@ export interface FetchedPage {
 }
 
 export async function fetchPage(rawUrl: string, ctx: ToolContext): Promise<FetchedPage> {
+  const page = await (ctx.prefetch?.get(normUrl(rawUrl)) ?? loadPage(rawUrl));
+  mark(ctx, rawUrl, "fetched");
+  mark(ctx, page.url, "fetched");
+  page.links.forEach((l) => mark(ctx, l.url, "link"));
+  return page;
+}
+
+async function loadPage(rawUrl: string): Promise<FetchedPage> {
   let u: URL;
   try {
     u = new URL(rawUrl);
@@ -214,8 +240,5 @@ export async function fetchPage(rawUrl: string, ctx: ToolContext): Promise<Fetch
       .replace(/<(br|\/p|\/div|\/li|\/tr|\/h\d)[^>]*>/gi, " \n "),
   ).slice(0, max);
 
-  mark(ctx, rawUrl, "fetched");
-  mark(ctx, finalUrl, "fetched");
-  links.forEach((l) => mark(ctx, l.url, "link"));
   return { url: finalUrl, title, text, structured_data: structured, links };
 }

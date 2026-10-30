@@ -1,7 +1,7 @@
 // Rule 6: validate each agent's JSON against its schema, retry once with the error, then fall back.
 import type { AgentRole } from "../config";
 import type { z } from "zod";
-import { type ChatMessage, llm, parseJSONObject } from "./llm";
+import { type ChatMessage, type LLMStats, llm, llmStats, parseJSONObject } from "./llm";
 import { zodErrors } from "./schemas";
 
 export class ValidationFailed extends Error {
@@ -29,13 +29,16 @@ export async function runJSON<T>(
   messages: ChatMessage[],
   schema: z.ZodType<T, z.ZodTypeDef, unknown>,
   check?: (v: T) => Checked,
-): Promise<{ value: T; soft: string[]; raw: (string | null)[] }> {
+): Promise<{ value: T; soft: string[]; raw: (string | null)[]; calls: LLMStats[] }> {
   const raw: (string | null)[] = [];
+  const calls: LLMStats[] = [];
   let lastErrors: string[] = [];
   const convo = [...messages];
   for (let attempt = 0; attempt < 2; attempt++) {
     const msg = await llm(role, convo, { json: true });
     raw.push(msg.content);
+    const st = llmStats.get(msg);
+    if (st) calls.push(st);
     let value: T | undefined;
     let hard: string[] = [],
       soft: string[] = [];
@@ -50,7 +53,7 @@ export async function runJSON<T>(
     } catch (e) {
       hard = [(e as Error).message];
     }
-    if (value !== undefined && !hard.length) return { value, soft, raw };
+    if (value !== undefined && !hard.length) return { value, soft, raw, calls };
     lastErrors = hard;
     convo.push({ role: "assistant", content: msg.content ?? "" });
     convo.push({

@@ -1,6 +1,6 @@
 // Side panel showing one turn's pipeline telemetry: Orchestrator -> Module (tools) -> Responder.
 import { useState, type ReactNode } from "react";
-import { Bug, Check, ChevronDown, Clock, Copy, Cpu } from "lucide-react";
+import { Brain, Bug, Check, ChevronDown, Clock, Copy, Cpu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
@@ -148,6 +148,43 @@ export function PipelineDebugger({
                 <dd className="text-right font-semibold">{ms(tr.latency.total)}</dd>
               </dl>
             </Section>
+
+            {!!tr.llm_calls?.length && (
+              <Section
+                title={`LLM Calls (${tr.llm_calls.length})`}
+                icon={<Brain className="size-4 text-primary" />}
+              >
+                <div className="flex flex-col gap-2">
+                  {tr.llm_calls.map((c, i) => (
+                    <div
+                      key={i}
+                      className="rounded-lg border border-border bg-muted p-3 font-mono text-xs"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-primary">{c.role}</span>
+                        {c.tool_calls > 0 && (
+                          <span className="text-muted-foreground">→ {c.tool_calls} tool calls</span>
+                        )}
+                        <span className="ml-auto font-semibold">{c.ms} ms</span>
+                      </div>
+                      <div className="mt-1 text-muted-foreground">
+                        in {c.prompt_tokens ?? "?"}
+                        {c.cached_tokens ? ` (${c.cached_tokens} cached)` : ""} · out{" "}
+                        {c.completion_tokens ?? "?"}
+                        {c.reasoning_tokens != null ? ` (${c.reasoning_tokens} reasoning)` : ""} ·
+                        effort {c.effort ?? "—"}
+                      </div>
+                      {(c.attempts > 1 || c.wait_ms > 0) && (
+                        <div className="mt-1 text-destructive">
+                          {c.attempts} HTTP attempts
+                          {c.wait_ms ? `, ${c.wait_ms} ms waiting (rate limit)` : ""}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </Section>
+            )}
 
             <Section
               title={`Tool Calls (${tr.tool_calls.length})`}

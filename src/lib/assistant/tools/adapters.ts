@@ -20,7 +20,7 @@ import type {
 } from "@/lib/birmarket-catalog.server";
 import { searchFlightOptions } from "./flights";
 import { convert, loadRates } from "./money";
-import { fetchPage, mark, offerItems, type ToolContext, webSearch } from "./web";
+import { fetchPage, mark, offerItems, prefetchPages, type ToolContext, webSearch } from "./web";
 
 type Args = Record<string, unknown>;
 export type AgentAdapter = (args: Args, tool: ToolConfig, ctx: ToolContext) => Promise<unknown>;
@@ -57,9 +57,9 @@ export const AGENT_ADAPTERS: Record<string, AgentAdapter> = {
     const given = Array.isArray(args["site_filter"])
       ? (args["site_filter"] as unknown[]).map(String)
       : [];
-    return {
-      results: await webSearch(query, given.length ? given : tool.default_site_filter, ctx),
-    };
+    const results = await webSearch(query, given.length ? given : tool.default_site_filter, ctx);
+    prefetchPages(results, ctx);
+    return { results };
   },
 
   fetch_v1: async (args, _tool, ctx) => {

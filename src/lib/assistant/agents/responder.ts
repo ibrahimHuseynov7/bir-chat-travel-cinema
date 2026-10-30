@@ -334,7 +334,7 @@ export async function runResponder(input: ResponderInput, session: Session) {
     REPLY_LANGUAGE: input.language,
     CHECK_PRICE: t("check_price", input.language),
   });
-  const { value, raw } = await runJSON<ResponderUI>(
+  const { value, raw, calls } = await runJSON<ResponderUI>(
     "responder",
     [
       { role: "system", content: system },
@@ -343,5 +343,5 @@ export async function runResponder(input: ResponderInput, session: Session) {
     ResponderUISchema,
     (ui) => checkUI(ui, input),
   );
-  return { ui: finalizeUI(value, input, session), raw };
+  return { ui: finalizeUI(value, input, session), raw, calls };
 }

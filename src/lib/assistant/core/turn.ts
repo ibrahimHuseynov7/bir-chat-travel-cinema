@@ -1,6 +1,7 @@
 // One turn: Orchestrator -> (Module Agent | direct adapter | nothing) -> Responder.
 // Max 3 LLM calls (+1 retry each on invalid JSON). All state changes happen here, in code.
 import { CONFIG, todayISO } from "../config";
+import type { LLMStats } from "./llm";
 import { runOrchestrator } from "../agents/orchestrator";
 import { errorResult, runModuleAgent } from "../agents/module_agent";
 import { buildResponderInput, fallbackUI, runResponder } from "../agents/responder";
@@ -72,6 +73,8 @@ export interface TurnTrace {
     items?: number;
     note?: string;
   }[];
+  /** Every model call of the turn, in order (module agent steps included). */
+  llm_calls: LLMStats[];
   decision: Decision | null;
   module_result: ModuleResult | null;
   responder: UI | null;
@@ -302,6 +305,7 @@ export async function handleTurn(req: TurnRequest): Promise<TurnResponse> {
     retries: 0,
     latency: { orchestrator: null, module: null, responder: null, total: 0 },
     tool_calls: [],
+    llm_calls: [],
     decision: null,
     module_result: null,
     responder: null,
@@ -313,6 +317,7 @@ export async function handleTurn(req: TurnRequest): Promise<TurnResponse> {
     const orch = await runOrchestrator(session, pre.userTurn);
     trace.latency.orchestrator = Date.now() - t0;
     trace.retries += orch.raw.length - 1;
+    trace.llm_calls.push(...orch.calls);
     log["orchestrator"] = { input: structuredClone(orch.input), output: orch.decision };
     decision = applyDecision(session, orch.decision);
     log["decision_applied"] = decision;
@@ -358,6 +363,7 @@ export async function handleTurn(req: TurnRequest): Promise<TurnResponse> {
         );
         moduleResult = m.result;
         trace.retries += Math.max(0, m.raw.length - 1);
+        trace.llm_calls.push(...m.calls);
         trace.tool_calls.push(
           ...m.toolLog.map((c) => ({ ...c, args: JSON.stringify(c.args, null, 2) })),
         );
@@ -390,6 +396,7 @@ export async function handleTurn(req: TurnRequest): Promise<TurnResponse> {
     ui = r.ui;
     trace.latency.responder = Date.now() - t0;
     trace.retries += r.raw.length - 1;
+    trace.llm_calls.push(...r.calls);
     trace.responder = ui;
     log["responder"] = { input: rin, output: ui, retried: r.raw.length > 1 };
     // The follow-up question about a guessed slot is asked once; after that the guess stands quietly.

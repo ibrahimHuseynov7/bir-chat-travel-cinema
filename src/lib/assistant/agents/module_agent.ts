@@ -2,7 +2,7 @@
 // Speed: tool calls of one step run in parallel; tools hand over ready-made items that the agent picks by
 // {"ref": id}, so the agent writes a short JSON instead of re-typing every flight/showtime.
 import { CONFIG, todayISO } from "../config";
-import { type ChatMessage, llm, parseJSONObject } from "../core/llm";
+import { type ChatMessage, llm, type LLMStats, llmStats, parseJSONObject } from "../core/llm";
 import { fill, MODULE_AGENT_PROMPT } from "../core/prompts";
 import { openAITools, type RegistryEntry } from "../core/registry";
 import { type Item, type ModuleResult, ModuleResultSchema, zodErrors } from "../core/schemas";
@@ -165,6 +165,8 @@ export async function runModuleAgent(
     MAX_ITEMS: String(maxItems),
   });
   const ctx = newToolContext();
+  if (entry.tools.some((t) => t.adapter === "fetch_v1")) ctx.prefetch = new Map();
+  const llmCalls: LLMStats[] = [];
   const tools = openAITools(entry);
   const ratesReady = slots["budget"] ? loadRates() : Promise.resolve();
   const messages: ChatMessage[] = [
@@ -181,7 +183,7 @@ export async function runModuleAgent(
   const finish = async (r: ModuleResult) => {
     await ratesReady;
     const g = groundResult(r, ctx, { budget: slots["budget"], maxItems });
-    return { result: g.result, toolLog: ctx.log, dropped: g.dropped, raw };
+    return { result: g.result, toolLog: ctx.log, dropped: g.dropped, raw, calls: llmCalls };
   };
 
   for (let step = 0; step < maxCalls + 3; step++) {
@@ -190,6 +192,8 @@ export async function runModuleAgent(
       tools,
       toolChoice: calls >= maxCalls || corrected || outOfTime ? "none" : "auto",
     });
+    const st = llmStats.get(msg);
+    if (st) llmCalls.push(st);
     if (msg.tool_calls?.length) {
       messages.push(msg);
       // All tool calls of this step run at the same time.
@@ -261,6 +265,7 @@ export async function runModuleAgent(
     toolLog: ctx.log,
     dropped: [] as string[],
     raw,
+    calls: llmCalls,
   };
 }
 

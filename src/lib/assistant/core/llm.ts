@@ -25,6 +25,29 @@ export type LLMFn = (
 
 export class LLMError extends Error {}
 
+/** Telemetry of one model call, for the in-app debugger. */
+export interface LLMStats {
+  role: AgentRole;
+  ms: number;
+  /** HTTP requests sent (>1 = parameter fallback or 429/5xx retry). */
+  attempts: number;
+  /** Time spent sleeping before 429/5xx retries. */
+  wait_ms: number;
+  effort: string | null;
+  prompt_tokens: number | null;
+  cached_tokens: number | null;
+  completion_tokens: number | null;
+  reasoning_tokens: number | null;
+  tool_calls: number;
+}
+/** Stats per returned message (kept off the message itself, which is sent back to the model). */
+export const llmStats = new WeakMap<ChatMessage, LLMStats>();
+export const statsOf = (msgs: ChatMessage[]): LLMStats[] =>
+  msgs.flatMap((m) => {
+    const s = llmStats.get(m);
+    return s ? [s] : [];
+  });
+
 // Parameters some deployments reject; dropped automatically (once per process) on a 400 that names them.
 const OPTIONAL_PARAMS = [
   "temperature",
@@ -59,6 +82,8 @@ const azureChat: LLMFn = async (role, messages, opts = {}) => {
     if (p === "max_completion_tokens" && body[p] !== undefined) body["max_tokens"] = body[p];
     delete body[p];
   }
+  const started = Date.now();
+  let waited = 0;
   for (let attempt = 0; attempt < 8; attempt++) {
     const res = await fetch(`${CONFIG.azure.endpoint()}/openai/v1/chat/completions`, {
       method: "POST",
@@ -72,6 +97,12 @@ const azureChat: LLMFn = async (role, messages, opts = {}) => {
           finish_reason?: string;
           message?: { content?: string | null; tool_calls?: ToolCall[] };
         }[];
+        usage?: {
+          prompt_tokens?: number;
+          completion_tokens?: number;
+          prompt_tokens_details?: { cached_tokens?: number };
+          completion_tokens_details?: { reasoning_tokens?: number };
+        };
       };
       const choice = data.choices?.[0];
       const msg = choice?.message;
@@ -79,7 +110,25 @@ const azureChat: LLMFn = async (role, messages, opts = {}) => {
       if (choice?.finish_reason === "length" && !msg.content && !msg.tool_calls?.length) {
         throw new LLMError("Model hit the token limit before answering");
       }
-      return { role: "assistant", content: msg.content ?? null, tool_calls: msg.tool_calls };
+      const out: ChatMessage = {
+        role: "assistant",
+        content: msg.content ?? null,
+        tool_calls: msg.tool_calls,
+      };
+      const u = data.usage;
+      llmStats.set(out, {
+        role,
+        ms: Date.now() - started,
+        attempts: attempt + 1,
+        wait_ms: waited,
+        effort: (body["reasoning_effort"] as string | undefined) ?? null,
+        prompt_tokens: u?.prompt_tokens ?? null,
+        cached_tokens: u?.prompt_tokens_details?.cached_tokens ?? null,
+        completion_tokens: u?.completion_tokens ?? null,
+        reasoning_tokens: u?.completion_tokens_details?.reasoning_tokens ?? null,
+        tool_calls: msg.tool_calls?.length ?? 0,
+      });
+      return out;
     }
     const text = await res.text();
     if (res.status === 400) {
@@ -104,6 +153,7 @@ const azureChat: LLMFn = async (role, messages, opts = {}) => {
       }
     }
     if ((res.status === 429 || res.status >= 500) && attempt < 3) {
+      waited += 800 * (attempt + 1);
       await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
       continue;
     }
