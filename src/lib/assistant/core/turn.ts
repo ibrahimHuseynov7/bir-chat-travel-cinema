@@ -49,6 +49,33 @@ export interface TurnResponse {
   };
   /** Every agent's JSON for this turn, as a JSON string (only when ASSISTANT_DEBUG=true). */
   debug?: string;
+  /** Pipeline telemetry for the in-app debugger (off with ASSISTANT_TRACE=false). */
+  trace?: TurnTrace;
+}
+export interface TurnTrace {
+  provider: string;
+  model: string;
+  /** Extra LLM calls caused by invalid JSON (each agent retries once). */
+  retries: number;
+  latency: {
+    orchestrator: number | null;
+    module: number | null;
+    responder: number | null;
+    total: number;
+  };
+  /** args is the tool's JSON input, pretty-printed (keeps the server-fn response serializable). */
+  tool_calls: {
+    tool: string;
+    args: string;
+    ok: boolean;
+    ms?: number;
+    items?: number;
+    note?: string;
+  }[];
+  decision: Decision | null;
+  module_result: ModuleResult | null;
+  responder: UI | null;
+  error: string | null;
 }
 
 const clean = (slots: Record<string, string | null>) =>
@@ -269,12 +296,27 @@ export async function handleTurn(req: TurnRequest): Promise<TurnResponse> {
   };
   let decision: Decision | null = null;
   let ui: UI;
+  const trace: TurnTrace = {
+    provider: "azure",
+    model: CONFIG.azure.deployment("orchestrator"),
+    retries: 0,
+    latency: { orchestrator: null, module: null, responder: null, total: 0 },
+    tool_calls: [],
+    decision: null,
+    module_result: null,
+    responder: null,
+    error: null,
+  };
+  let t0 = Date.now();
   try {
     // 1) Orchestrator
     const orch = await runOrchestrator(session, pre.userTurn);
+    trace.latency.orchestrator = Date.now() - t0;
+    trace.retries += orch.raw.length - 1;
     log["orchestrator"] = { input: structuredClone(orch.input), output: orch.decision };
     decision = applyDecision(session, orch.decision);
     log["decision_applied"] = decision;
+    trace.decision = decision;
     const entry: RegistryEntry | null = getEntry(decision.module);
     const topic = activeTopic(session);
 
@@ -282,6 +324,7 @@ export async function handleTurn(req: TurnRequest): Promise<TurnResponse> {
     let moduleResult: ModuleResult | null = null;
     let lastResult: ModuleResult | null = null;
     if (decision.decision === "route" && entry && topic) {
+      t0 = Date.now();
       const slots = withDefaults(entry, topic.slots, session);
       if (entry.executor === "direct") {
         const adapterName = entry.tools[0]?.adapter ?? "";
@@ -296,6 +339,13 @@ export async function handleTurn(req: TurnRequest): Promise<TurnResponse> {
           moduleResult = errorResult((e as Error).message);
         }
         log["module"] = { executor: "direct", input: { slots }, output: moduleResult };
+        trace.tool_calls.push({
+          tool: entry.tools[0]?.name ?? adapterName,
+          args: JSON.stringify(slots, null, 2),
+          ok: moduleResult.status !== "error",
+          ms: Date.now() - t0,
+          items: moduleResult.items.length,
+        });
       } else {
         const m = await runModuleAgent(
           entry,
@@ -307,6 +357,10 @@ export async function handleTurn(req: TurnRequest): Promise<TurnResponse> {
           entry.pass_user_message ? pre.display : undefined,
         );
         moduleResult = m.result;
+        trace.retries += Math.max(0, m.raw.length - 1);
+        trace.tool_calls.push(
+          ...m.toolLog.map((c) => ({ ...c, args: JSON.stringify(c.args, null, 2) })),
+        );
         log["module"] = {
           executor: "agent",
           input: { task: decision.task, slots, topic_summary: topic.summary, user: session.user },
@@ -316,6 +370,8 @@ export async function handleTurn(req: TurnRequest): Promise<TurnResponse> {
           output: m.result,
         };
       }
+      trace.latency.module = Date.now() - t0;
+      trace.module_result = moduleResult;
       if (moduleResult.status === "error") throw new Error("module error: " + moduleResult.summary);
       if (moduleResult.items.length) topic.last_result_ref = saveResult(session, moduleResult);
       if (moduleResult.status === "need_input" && moduleResult.need_input) {
@@ -329,8 +385,12 @@ export async function handleTurn(req: TurnRequest): Promise<TurnResponse> {
 
     // 3) Responder
     const rin = buildResponderInput(decision, session, entry, moduleResult, lastResult);
+    t0 = Date.now();
     const r = await runResponder(rin, session);
     ui = r.ui;
+    trace.latency.responder = Date.now() - t0;
+    trace.retries += r.raw.length - 1;
+    trace.responder = ui;
     log["responder"] = { input: rin, output: ui, retried: r.raw.length > 1 };
     // The follow-up question about a guessed slot is asked once; after that the guess stands quietly.
     if (topic && Object.keys(rin.assumed_slots).length) {
@@ -341,6 +401,7 @@ export async function handleTurn(req: TurnRequest): Promise<TurnResponse> {
   } catch (e) {
     console.error("turn failed:", (e as Error).message);
     log["error"] = (e as Error).message;
+    trace.error = (e as Error).message;
     ui = fallbackUI(session, decision?.reply_language ?? session.user.language);
   }
 
@@ -350,6 +411,7 @@ export async function handleTurn(req: TurnRequest): Promise<TurnResponse> {
   );
   session.recent_turns = session.recent_turns.slice(-CONFIG.recentTurns * 2);
   log["ms"] = Date.now() - started;
+  trace.latency.total = log["ms"] as number;
   // Every agent's input and output JSON for the turn goes to the server log (Lovable Cloud / Worker logs).
   console.log("[assistant-turn]", JSON.stringify(log));
 
@@ -358,5 +420,6 @@ export async function handleTurn(req: TurnRequest): Promise<TurnResponse> {
     ui,
     meta: meta(decision),
     ...(CONFIG.debug() ? { debug: JSON.stringify(log) } : {}),
+    ...(CONFIG.trace() ? { trace } : {}),
   };
 }

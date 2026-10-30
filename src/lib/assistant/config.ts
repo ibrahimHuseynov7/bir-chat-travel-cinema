@@ -84,6 +84,8 @@ export const CONFIG = {
   /** Hard stop for the Module Agent loop: after this, answer with what the tools returned so far. */
   moduleAgentBudgetMs: 40_000,
   debug: () => env("ASSISTANT_DEBUG") === "true",
+  /** Pipeline telemetry returned to the chat UI's "View Debugger" panel. */
+  trace: () => env("ASSISTANT_TRACE", "true") !== "false",
 };
 
 export function todayISO(offsetDays = 0): string {

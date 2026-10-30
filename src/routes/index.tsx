@@ -1,14 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, ArrowUpRight, Clapperboard, Plane, ShoppingBag, Plus, MessageCircle } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Bug, Clapperboard, Plane, ShoppingBag, Plus, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BirLogo } from "@/components/bir-logo";
 import { AssistantReply } from "@/components/assistant-cards";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { PipelineDebugger } from "@/components/pipeline-debugger";
 import { assistantModules, assistantTurn } from "@/lib/chat.functions";
 import type { Route as LogoCell } from "@/lib/bir";
 import type { UI, UIEvent } from "@/lib/assistant/core/schemas";
+import type { TurnTrace } from "@/lib/assistant/core/turn";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -35,6 +37,7 @@ type Msg = {
   text: string;
   ui?: UI;
   module?: string | null;
+  trace?: TurnTrace | undefined;
 };
 // Logo highlight per module (cosmetic only; unknown modules simply show the full logo).
 const LOGO: Record<string, LogoCell> = {
@@ -52,6 +55,7 @@ const T: Record<
     newChat: string;
     retry: string;
     stages: [string, string, string];
+    debugger: string;
   }
 > = {
   az: {
@@ -62,6 +66,7 @@ const T: Record<
     newChat: "Yeni çat",
     retry: "Yenidən cəhd et",
     stages: ["Düşünürəm…", "Məlumat axtarıram…", "Cavabı hazırlayıram…"],
+    debugger: "Debuggerə bax",
   },
   ru: {
     title: "Поездки, кино и покупки в одном чате",
@@ -71,6 +76,7 @@ const T: Record<
     newChat: "Новый чат",
     retry: "Повторить",
     stages: ["Думаю…", "Ищу данные…", "Готовлю ответ…"],
+    debugger: "Открыть отладчик",
   },
   en: {
     title: "Trips, movies and shopping in one chat",
@@ -80,6 +86,7 @@ const T: Record<
     newChat: "New chat",
     retry: "Try again",
     stages: ["Thinking…", "Looking things up…", "Putting it together…"],
+    debugger: "View Debugger",
   },
 };
 
@@ -94,6 +101,7 @@ function Index() {
   );
   const [modules, setModules] = useState<{ id: string; display_name: string }[]>([]);
   const [stage, setStage] = useState(0);
+  const [debugId, setDebugId] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const turn = useServerFn(assistantTurn);
@@ -101,6 +109,7 @@ function Index() {
   const t = T[lang];
   const lastUi = [...messages].reverse().find((m) => m.role === "assistant")?.ui;
   const activeModule = [...messages].reverse().find((m) => m.module)?.module ?? null;
+  const debugTurns = messages.flatMap((m) => (m.trace ? [{ id: m.id, trace: m.trace }] : []));
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -143,6 +152,7 @@ function Index() {
             text: ui.text,
             ui,
             module: res.meta.module,
+            trace: res.trace,
           },
         ]);
     } catch {
@@ -169,6 +179,7 @@ function Index() {
   };
   const reset = () => {
     setMessages([]);
+    setDebugId(null);
     setState(null);
     setFailed(null);
     setInput("");
@@ -270,6 +281,17 @@ function Index() {
                     live={m.ui === lastUi && !waiting}
                   />
                 )}
+                {m.trace && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDebugId(m.id)}
+                    className="ml-6 h-7 w-fit gap-1.5 px-2 text-xs text-muted-foreground"
+                  >
+                    <Bug className="size-3.5" />
+                    {t.debugger}
+                  </Button>
+                )}
               </div>
             ),
           )}
@@ -347,6 +369,12 @@ function Index() {
         </div>
       </form>
       </div>
+      <PipelineDebugger
+        turns={debugTurns}
+        selected={debugId}
+        onSelect={setDebugId}
+        onClose={() => setDebugId(null)}
+      />
     </div>
   );
 }
