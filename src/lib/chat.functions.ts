@@ -8,6 +8,8 @@ export const assistantTurn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { warmUp } = await import("./scrapers.server");
     warmUp(); // keep the cinema / Birmarket snapshots fresh in the background
+    const { warmFlightData } = await import("./assistant/tools/flights");
+    warmFlightData(); // airports / airlines lists download while the Orchestrator runs
     const { handleTurn } = await import("./assistant/core/turn");
     return handleTurn(data);
   });

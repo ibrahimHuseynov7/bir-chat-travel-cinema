@@ -107,6 +107,12 @@ export function PipelineDebugger({
               #{i + 1}
             </Button>
           ))}
+          {tr && (
+            <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
+              Full trace
+              <CopyButton text={json(tr)} />
+            </span>
+          )}
         </div>
         {tr && (
           <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">

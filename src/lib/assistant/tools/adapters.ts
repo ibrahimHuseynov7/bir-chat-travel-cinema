@@ -1,7 +1,7 @@
 // Tool adapters: registry `adapter` name -> code. Every adapter maps its source to plain JSON for the
 // Module Agent (or, for executor: direct, to a ModuleResult) and records the URLs its data came from,
 // so code can check every item's source_url (rule 4).
-import type { ToolConfig } from "../core/registry";
+import type { RegistryEntry, ToolConfig } from "../core/registry";
 import type { Item, ModuleResult } from "../core/schemas";
 import type { Session } from "../core/state";
 import { CONFIG, todayISO } from "../config";
@@ -18,7 +18,7 @@ import type {
   CatalogSearchParams,
   CatalogSort,
 } from "@/lib/birmarket-catalog.server";
-import { searchFlightOptions } from "./flights";
+import { resolvePlace, searchFlightOptions } from "./flights";
 import { convert, loadRates } from "./money";
 import { fetchPage, mark, offerItems, prefetchPages, type ToolContext, webSearch } from "./web";
 
@@ -48,6 +48,17 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (t: T) => Promise<R
     }),
   );
   return out;
+}
+
+/**
+ * Started right after the Orchestrator, while the Module Agent's first model call runs: resolves the
+ * trip's cities (cached lookups the flight tool repeats) and the exchange rates. Same data, just earlier.
+ */
+export function prewarmTools(entry: RegistryEntry, slots: Record<string, string>) {
+  if (!entry.tools.some((t) => t.adapter === "aviasales_v1")) return;
+  for (const k of ["origin", "destination_or_criteria"])
+    if (slots[k]) resolvePlace(slots[k]).catch(() => {});
+  if (slots["budget"]) void loadRates();
 }
 
 export const AGENT_ADAPTERS: Record<string, AgentAdapter> = {

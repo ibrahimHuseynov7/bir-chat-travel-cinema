@@ -5,7 +5,7 @@ import type { LLMStats } from "./llm";
 import { runOrchestrator } from "../agents/orchestrator";
 import { errorResult, runModuleAgent } from "../agents/module_agent";
 import { buildResponderInput, fallbackUI, runResponder } from "../agents/responder";
-import { DIRECT_ADAPTERS } from "../tools/adapters";
+import { DIRECT_ADAPTERS, prewarmTools } from "../tools/adapters";
 import { defaultValue, getEntry, type RegistryEntry, type SlotDef } from "./registry";
 import {
   type Decision,
@@ -352,6 +352,7 @@ export async function handleTurn(req: TurnRequest): Promise<TurnResponse> {
           items: moduleResult.items.length,
         });
       } else {
+        prewarmTools(entry, slots);
         const m = await runModuleAgent(
           entry,
           decision.task,
