@@ -64,6 +64,7 @@ const azureChat: LLMFn = async (role, messages, opts = {}) => {
   const key = CONFIG.azure.apiKey();
   if (!key) throw new LLMError("COMPANY_AI_KEY is not set");
   const body: Record<string, unknown> = {
+    model: CONFIG.azure.deployment(role),
     messages,
     max_completion_tokens: CONFIG.azure.maxCompletionTokens[role],
   };
@@ -84,9 +85,7 @@ const azureChat: LLMFn = async (role, messages, opts = {}) => {
   const started = Date.now();
   let waited = 0;
   for (let attempt = 0; attempt < 8; attempt++) {
-    const res = await fetch(
-      `${CONFIG.azure.endpoint()}/openai/deployments/${CONFIG.azure.deployment(role)}/chat/completions?api-version=${CONFIG.azure.apiVersion()}`,
-      {
+    const res = await fetch(`${CONFIG.azure.endpoint()}/openai/v1/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "api-key": key },
       body: JSON.stringify(body),
