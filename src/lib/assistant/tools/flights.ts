@@ -76,12 +76,6 @@ function airlines(): Promise<Map<string, string>> {
   return airlinesP;
 }
 
-/** Loads the reference lists in the background so the first flight search of a server instance needn't wait. */
-export function warmFlightData() {
-  airports().catch(() => {});
-  airlines().catch(() => {});
-}
-
 // ---------- place resolution ----------
 export type Place = {
   code: string;
