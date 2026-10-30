@@ -23,12 +23,13 @@ const effortChain = (role: AgentRole, d: string[]): string[] => {
 
 export const CONFIG = {
   azure: {
-    // Azure AI resource "ds-ai-shopping-assistant-rs" (model gpt-6-luna).
+    // New resource: ds-ai-shopping-assistant-rs (gpt-6-luna). Key stays the same (COMPANY_AI_KEY).
     endpoint: () =>
       env(
         "AZURE_OPENAI_ENDPOINT",
         "https://ds-ai-shopping-assistant-rs.cognitiveservices.azure.com",
       ).replace(/\/+$/, ""),
+    apiVersion: () => env("AZURE_OPENAI_API_VERSION", "2024-12-01-preview"),
     apiKey: () => env("COMPANY_AI_KEY") || env("AZURE_OPENAI_API_KEY"),
     deployment: (role: AgentRole) =>
       env(`AZURE_DEPLOYMENT_${role.toUpperCase()}`) ||
