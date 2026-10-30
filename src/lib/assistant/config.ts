@@ -23,16 +23,16 @@ const effortChain = (role: AgentRole, d: string[]): string[] => {
 
 export const CONFIG = {
   azure: {
-    // The same resource the app already used successfully (createAzure resourceName "ai-ds-coe-resource").
+    // Azure AI resource "ds-ai-shopping-assistant-rs" (model gpt-6-luna).
     endpoint: () =>
-      env("AZURE_OPENAI_ENDPOINT", "https://ai-ds-coe-resource.openai.azure.com").replace(
-        /\/+$/,
-        "",
-      ),
+      env(
+        "AZURE_OPENAI_ENDPOINT",
+        "https://ds-ai-shopping-assistant-rs.cognitiveservices.azure.com",
+      ).replace(/\/+$/, ""),
     apiKey: () => env("COMPANY_AI_KEY") || env("AZURE_OPENAI_API_KEY"),
     deployment: (role: AgentRole) =>
       env(`AZURE_DEPLOYMENT_${role.toUpperCase()}`) ||
-      env("AZURE_OPENAI_DEPLOYMENT", "gpt-5.4-superchat"),
+      env("AZURE_OPENAI_DEPLOYMENT", "si-gpt-6-luna-eval"),
     reasoningEffort: (role: AgentRole): string[] =>
       ({
         orchestrator: effortChain("orchestrator", ["none", "minimal", "low"]),
